@@ -4,8 +4,8 @@
    - root: .mk-acc
    - items: .mk-acc-item  (each needs data-acc="1|2|3" and data-title="...")
    - media: .mk-acc-media (each needs data-acc="1|2|3")
-   - left header (optional): element with data-mk-heading
-   - left chip (optional): element with data-mk-chip
+   - left heading (optional): elements with data-mk-heading
+   - left chip (optional): elements with data-mk-chip
 */
 
 (function () {
@@ -25,12 +25,11 @@
     var items = toArr(root.querySelectorAll(".mk-acc-item"));
     var media = toArr(root.querySelectorAll(".mk-acc-media"));
 
-    // Optional: left-side title + chip
-    var headingEl = root.querySelector("[data-mk-heading]");
-    var chipEl = root.querySelector("[data-mk-chip]");
+    // IMPORTANT: in Tilda there can be multiple copies (breakpoints),
+    // so we update ALL matches, not only the first.
+    var headingEls = toArr(root.querySelectorAll("[data-mk-heading]"));
+    var chipEls = toArr(root.querySelectorAll("[data-mk-chip]"));
 
-    // If no media, do not stop items from working.
-    // We still allow accordion to operate even without media.
     if (!items.length) return;
 
     function getKey(el) {
@@ -38,14 +37,17 @@
     }
 
     function setLeftHeader(title, key) {
-      if (headingEl) headingEl.textContent = title || "";
-      if (chipEl) chipEl.textContent = "(" + pad2(key) + ")";
+      headingEls.forEach(function (el) {
+        el.textContent = title || "";
+      });
+      chipEls.forEach(function (el) {
+        el.textContent = "(" + pad2(key) + ")";
+      });
     }
 
     function setActive(key) {
       if (!key) return;
 
-      // Find matching item
       var activeItem = items.find(function (i) {
         return getKey(i) === key;
       });
@@ -54,25 +56,19 @@
         i.classList.toggle("is-active", getKey(i) === key);
       });
 
-      // Media can be absent, do not break logic
       media.forEach(function (m) {
         m.classList.toggle("is-active", getKey(m) === key);
       });
 
-      if (activeItem) {
-        var title = activeItem.getAttribute("data-title") || "";
-        setLeftHeader(title, key);
-      } else {
-        setLeftHeader("", key);
-      }
+      // Update left header from active card title
+      var title = activeItem ? (activeItem.getAttribute("data-title") || "") : "";
+      setLeftHeader(title, key);
     }
 
     function closeAllToDefault() {
-      // Default is first item key (or "1")
       var first = items[0];
       var k = getKey(first) || "1";
 
-      // Keep media default visible
       items.forEach(function (i) {
         i.classList.remove("is-active");
       });
@@ -81,7 +77,7 @@
         m.classList.remove("is-active");
       });
 
-      // Show default media, but keep accordion closed (no active items)
+      // Keep default media visible (nice UX)
       var defMedia = media.find(function (m) {
         return getKey(m) === k;
       });
@@ -92,11 +88,11 @@
       setLeftHeader(title, k);
     }
 
-    // Initial state: first item active (accordion open)
+    // Initial state: open first
     var defaultKey = getKey(items[0]) || "1";
     setActive(defaultKey);
 
-    // Click handlers with toggle close on active item
+    // Click handlers (toggle)
     items.forEach(function (item) {
       item.style.cursor = "pointer";
       item.addEventListener("click", function () {
@@ -104,7 +100,6 @@
         if (!key) return;
 
         if (item.classList.contains("is-active")) {
-          // Toggle: close active back
           closeAllToDefault();
           return;
         }
@@ -132,7 +127,6 @@
     }, delay);
   }
 
-  // Tilda can render Zero content after initial DOM ready, so we retry.
   if (document.readyState === "complete") {
     bootWithRetry();
   } else {
