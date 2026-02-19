@@ -1,191 +1,94 @@
-/* mk-acc.js
-   Рабочий для Tilda Zero:
-   - Переключает active пункт (is-active)
-   - Меняет медиа сцены (mk-acc-media по data-acc)
-   - Обновляет (01) и заголовок глобально (data-mk-chip / data-mk-heading)
-   - Делает аккордеон, если есть mk-acc-body (или data-mk-body)
-
-   Разметка:
-   1) Корень блока: mk-acc
-   2) Пункты: mk-acc-item + data-acc="1|2|3" + data-title="..."
-   3) Медиа: mk-acc-media + data-acc="1|2|3"
-   4) Чип: data-mk-chip="1" (value любое)
-   5) Заголовок: data-mk-heading="1" (value любое)
-   6) Тело аккордеона: mk-acc-body (или data-mk-body="1") внутри каждого mk-acc-item
-*/
-
 (function () {
-  "use strict";
+  function toArr(list) { return Array.prototype.slice.call(list || []); }
+  function pad2(n) { var s = String(n || ""); return s.length >= 2 ? s : "0" + s; }
 
-  const EASE = "cubic-bezier(0.16, 1, 0.3, 1)";
-  const DUR = 560;
-
-  const SEL = {
-    root: ".mk-acc",
-    item: ".mk-acc-item",
-    media: ".mk-acc-media",
-    body: ".mk-acc-body, [data-mk-body]",
-    headingAll: "[data-mk-heading]",
-    chipAll: "[data-mk-chip]",
-  };
-
-  function pad2(n) {
-    const s = String(n || "");
-    return s.length >= 2 ? s : "0" + s;
+  function getGlobalHeaderEls() {
+    // поддерживаем оба варианта разметки
+    var heading = toArr(document.querySelectorAll('[data-mk-heading], .mk-acc-heading'));
+    var chip = toArr(document.querySelectorAll('[data-mk-chip], .mk-acc-chip'));
+    return { heading: heading, chip: chip };
   }
 
-  function qsa(root, sel) {
-    return Array.from(root.querySelectorAll(sel));
+  function setGlobalHeader(title, key) {
+    var els = getGlobalHeaderEls();
+    els.heading.forEach(function (el) { el.textContent = title || ""; });
+    els.chip.forEach(function (el) { el.textContent = "(" + pad2(key) + ")"; });
   }
 
-  function setGlobalHeadingChip(acc, title) {
-    const heads = qsa(document, SEL.headingAll);
-    const chips = qsa(document, SEL.chipAll);
+  function initOne(root) {
+    if (!root || root.__mkAccInited) return;
+    root.__mkAccInited = true;
 
-    heads.forEach((el) => (el.textContent = title || ""));
-    chips.forEach((el) => (el.textContent = "(" + pad2(acc) + ")"));
-  }
-
-  function ensureMediaStack(mediaEls) {
-    if (!mediaEls.length) return;
-    const parent = mediaEls[0].parentElement;
-    if (!parent) return;
-
-    const st = window.getComputedStyle(parent);
-    if (st.position === "static") parent.style.position = "relative";
-
-    mediaEls.forEach((el) => {
-      el.style.position = "absolute";
-      el.style.inset = "0";
-      el.style.transition = `opacity ${DUR}ms ${EASE}, transform ${DUR}ms ${EASE}`;
-      el.style.willChange = "opacity, transform";
-    });
-  }
-
-  function setMedia(root, acc) {
-    const scenes = qsa(root, SEL.media);
-    if (!scenes.length) return;
-
-    ensureMediaStack(scenes);
-
-    scenes.forEach((scene) => {
-      const a = scene.getAttribute("data-acc");
-      const on = String(a) === String(acc);
-
-      if (on) {
-        scene.style.opacity = "1";
-        scene.style.transform = "translateY(0px)";
-        scene.style.pointerEvents = "auto";
-        scene.style.visibility = "visible";
-      } else {
-        scene.style.opacity = "0";
-        scene.style.transform = "translateY(8px)";
-        scene.style.pointerEvents = "none";
-        scene.style.visibility = "hidden";
-      }
-    });
-  }
-
-  function prepBody(body) {
-    if (!body) return;
-    body.style.overflow = "hidden";
-    body.style.willChange = "max-height, opacity, transform";
-    body.style.transition = [
-      `max-height ${DUR}ms ${EASE}`,
-      `opacity ${Math.min(DUR, 420)}ms ${EASE}`,
-      `transform ${Math.min(DUR, 420)}ms ${EASE}`,
-    ].join(", ");
-  }
-
-  function closeBody(body) {
-    if (!body) return;
-    prepBody(body);
-    body.style.maxHeight = "0px";
-    body.style.opacity = "0";
-    body.style.transform = "translateY(-4px)";
-  }
-
-  function openBody(body) {
-    if (!body) return;
-    prepBody(body);
-    body.style.opacity = "1";
-    body.style.transform = "translateY(0px)";
-    body.style.maxHeight = "0px";
-    requestAnimationFrame(() => {
-      body.style.maxHeight = (body.scrollHeight || 0) + "px";
-    });
-  }
-
-  function setActive(root, acc, toggleIfActive) {
-    const items = qsa(root, SEL.item);
+    var items = toArr(root.querySelectorAll(".mk-acc-item"));
+    var media = toArr(root.querySelectorAll(".mk-acc-media"));
     if (!items.length) return;
 
-    const target = items.find((it) => String(it.getAttribute("data-acc")) === String(acc));
-    if (!target) return;
+    function keyOf(el) { return el ? el.getAttribute("data-acc") : null; }
 
-    const wasActive = target.classList.contains("is-active");
-    const shouldClose = toggleIfActive && wasActive;
+    function setActive(key) {
+      if (!key) return;
 
-    items.forEach((it) => {
-      const body = it.querySelector(SEL.body);
+      var activeItem = items.find(function (i) { return keyOf(i) === key; });
+      var title = activeItem ? (activeItem.getAttribute("data-title") || "") : "";
 
-      if (!shouldClose && it === target) {
-        it.classList.add("is-active");
-        openBody(body);
-      } else {
-        it.classList.remove("is-active");
-        closeBody(body);
-      }
-    });
+      items.forEach(function (i) {
+        i.classList.toggle("is-active", keyOf(i) === key);
+      });
 
-    // медиа и заголовки обновляем только при открытии
-    if (!shouldClose) {
-      const title = target.getAttribute("data-title") || "";
-      setGlobalHeadingChip(acc, title);
-      setMedia(root, acc);
+      media.forEach(function (m) {
+        m.classList.toggle("is-active", keyOf(m) === key);
+      });
+
+      setGlobalHeader(title, key);
     }
-  }
 
-  function initRoot(root) {
-    if (!root || root.__mkInited) return;
-    root.__mkInited = true;
+    function closeToDefault() {
+      var first = items[0];
+      var k = keyOf(first) || "1";
 
-    // закрываем все тела на старте, чтобы не было "все раскрыто"
-    qsa(root, SEL.item).forEach((it) => closeBody(it.querySelector(SEL.body)));
+      items.forEach(function (i) { i.classList.remove("is-active"); });
+      media.forEach(function (m) { m.classList.remove("is-active"); });
 
-    // стартовое: первый пункт
-    const first = root.querySelector(SEL.item);
-    const startAcc = (first && first.getAttribute("data-acc")) || "1";
-    setActive(root, startAcc, false);
+      var defMedia = media.find(function (m) { return keyOf(m) === k; }) || media[0];
+      if (defMedia) defMedia.classList.add("is-active");
 
-    // делегирование клика внутри блока
-    root.addEventListener("click", (e) => {
-      const item = e.target.closest(SEL.item);
+      var title = (first && first.getAttribute("data-title")) || "";
+      setGlobalHeader(title, k);
+    }
+
+    // init default
+    var defaultKey = keyOf(items[0]) || "1";
+    setActive(defaultKey);
+
+    // делегирование клика (самое надёжное для Tilda)
+    root.addEventListener("click", function (e) {
+      var item = e.target.closest(".mk-acc-item");
       if (!item || !root.contains(item)) return;
 
-      const acc = item.getAttribute("data-acc");
-      if (!acc) return;
+      var key = keyOf(item);
+      if (!key) return;
 
-      setActive(root, acc, true);
+      if (item.classList.contains("is-active")) closeToDefault();
+      else setActive(key);
     });
   }
 
-  function boot() {
-    qsa(document, SEL.root).forEach(initRoot);
+  function bootOnce() {
+    var roots = toArr(document.querySelectorAll(".mk-acc"));
+    if (!roots.length) return false;
+    roots.forEach(initOne);
+    return true;
   }
 
-  // Tilda может дорисовывать DOM позже, поэтому несколько проходов
-  if (document.readyState === "loading") {
-    document.addEventListener("DOMContentLoaded", () => {
-      boot();
-      setTimeout(boot, 300);
-      setTimeout(boot, 900);
-      setTimeout(boot, 1600);
-    });
-  } else {
-    boot();
-    setTimeout(boot, 300);
-    setTimeout(boot, 900);
-    setTimeout(boot, 1600);
+  function bootWithRetry() {
+    var tries = 0, maxTries = 60, delay = 150;
+    var timer = setInterval(function () {
+      tries += 1;
+      var ok = bootOnce();
+      if (ok || tries >= maxTries) clearInterval(timer);
+    }, delay);
   }
+
+  if (document.readyState === "complete") bootWithRetry();
+  else window.addEventListener("load", bootWithRetry);
 })();
