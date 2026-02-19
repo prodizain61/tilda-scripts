@@ -2,17 +2,20 @@
   function toArr(list) { return Array.prototype.slice.call(list || []); }
   function pad2(n) { var s = String(n || ""); return s.length >= 2 ? s : "0" + s; }
 
-  function getGlobalHeaderEls() {
-    var heading = toArr(document.querySelectorAll('[data-mk-heading], .mk-acc-heading'));
-    var chip = toArr(document.querySelectorAll('[data-mk-chip], .mk-acc-chip'));
-    return { heading: heading, chip: chip };
-  }
+function getGlobalHeaderEls() {
+  return {
+    heading: Array.prototype.slice.call(document.querySelectorAll('[data-mk-heading], .mk-acc-heading')),
+    chip: Array.prototype.slice.call(document.querySelectorAll('[data-mk-chip], .mk-acc-chip'))
+  };
+}
 
-  function setGlobalHeader(title, key) {
-    var els = getGlobalHeaderEls();
-    els.heading.forEach(function (el) { el.textContent = title || ""; });
-    els.chip.forEach(function (el) { el.textContent = "(" + pad2(key) + ")"; });
-  }
+function setGlobalHeader(title, key) {
+  var els = getGlobalHeaderEls();
+  var chipText = "(" + String(key).padStart(2, "0") + ")";
+
+  els.heading.forEach(function (el) { el.textContent = title || ""; });
+  els.chip.forEach(function (el) { el.textContent = chipText; });
+}
 
   function initOne(root) {
     if (!root || root.__mkAccInited) return;
