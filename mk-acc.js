@@ -1,58 +1,63 @@
 /* mk-acc.js
-   Аккордион + смена медиа + обновление (01) и заголовка
-   Разметка (важно):
-   - На контейнер блока: class="mk-acc"
-   - На каждый пункт: class="mk-acc-item" + data-acc="1|2|3" + data-title="Брендам одежды"
-   - На каждую сцену медиа: class="mk-acc-media" + data-acc="1|2|3"
-   - На текст с номером (01): атрибут data-mk-chip="1" (value любое)
-   - На текст с заголовком: атрибут data-mk-heading="1" (value любое)
+   Рабочий для Tilda Zero:
+   - Переключает active пункт (is-active)
+   - Меняет медиа сцены (mk-acc-media по data-acc)
+   - Обновляет (01) и заголовок глобально (data-mk-chip / data-mk-heading)
+   - Делает аккордеон, если есть mk-acc-body (или data-mk-body)
 
-   Контент пункта (раскрывающаяся часть) желательно завернуть в отдельную группу
-   и дать ей class="mk-acc-body" (или data-mk-body="1").
-   Если тела нет, скрипт все равно будет менять активный пункт, медиа, heading/chip.
+   Разметка:
+   1) Корень блока: mk-acc
+   2) Пункты: mk-acc-item + data-acc="1|2|3" + data-title="..."
+   3) Медиа: mk-acc-media + data-acc="1|2|3"
+   4) Чип: data-mk-chip="1" (value любое)
+   5) Заголовок: data-mk-heading="1" (value любое)
+   6) Тело аккордеона: mk-acc-body (или data-mk-body="1") внутри каждого mk-acc-item
 */
 
 (function () {
   "use strict";
 
   const EASE = "cubic-bezier(0.16, 1, 0.3, 1)";
-  const DUR = 520; // мягче, как Framer
-  const FADE = 420;
+  const DUR = 560;
 
   const SEL = {
     root: ".mk-acc",
     item: ".mk-acc-item",
     media: ".mk-acc-media",
     body: ".mk-acc-body, [data-mk-body]",
-    heading: "[data-mk-heading]",
-    chip: "[data-mk-chip]",
+    headingAll: "[data-mk-heading]",
+    chipAll: "[data-mk-chip]",
   };
 
   function pad2(n) {
-    n = String(n || "");
-    return n.length >= 2 ? n : "0" + n;
+    const s = String(n || "");
+    return s.length >= 2 ? s : "0" + s;
   }
 
-  function qs(root, sel) {
-    return root.querySelector(sel);
-  }
   function qsa(root, sel) {
     return Array.from(root.querySelectorAll(sel));
   }
 
-  function ensureMediaLayout(mediaEls) {
+  function setGlobalHeadingChip(acc, title) {
+    const heads = qsa(document, SEL.headingAll);
+    const chips = qsa(document, SEL.chipAll);
+
+    heads.forEach((el) => (el.textContent = title || ""));
+    chips.forEach((el) => (el.textContent = "(" + pad2(acc) + ")"));
+  }
+
+  function ensureMediaStack(mediaEls) {
     if (!mediaEls.length) return;
     const parent = mediaEls[0].parentElement;
     if (!parent) return;
 
-    // чтобы сцены лежали друг на друге
     const st = window.getComputedStyle(parent);
     if (st.position === "static") parent.style.position = "relative";
 
     mediaEls.forEach((el) => {
       el.style.position = "absolute";
       el.style.inset = "0";
-      el.style.transition = `opacity ${FADE}ms ${EASE}, transform ${FADE}ms ${EASE}`;
+      el.style.transition = `opacity ${DUR}ms ${EASE}, transform ${DUR}ms ${EASE}`;
       el.style.willChange = "opacity, transform";
     });
   }
@@ -61,36 +66,24 @@
     const scenes = qsa(root, SEL.media);
     if (!scenes.length) return;
 
-    ensureMediaLayout(scenes);
+    ensureMediaStack(scenes);
 
     scenes.forEach((scene) => {
       const a = scene.getAttribute("data-acc");
-      const isOn = String(a) === String(acc);
+      const on = String(a) === String(acc);
 
-      if (isOn) {
+      if (on) {
         scene.style.opacity = "1";
-        scene.style.pointerEvents = "auto";
         scene.style.transform = "translateY(0px)";
+        scene.style.pointerEvents = "auto";
         scene.style.visibility = "visible";
       } else {
         scene.style.opacity = "0";
-        scene.style.pointerEvents = "none";
         scene.style.transform = "translateY(8px)";
+        scene.style.pointerEvents = "none";
         scene.style.visibility = "hidden";
       }
     });
-  }
-
-  function updateHeadingChip(root, acc, title) {
-    const h = qs(root, SEL.heading);
-    const c = qs(root, SEL.chip);
-
-    if (h) h.textContent = title || "";
-    if (c) c.textContent = "(" + pad2(acc) + ")";
-  }
-
-  function getBody(item) {
-    return item.querySelector(SEL.body);
   }
 
   function prepBody(body) {
@@ -115,41 +108,28 @@
   function openBody(body) {
     if (!body) return;
     prepBody(body);
-
-    // сначала в "почти открытое" состояние, потом поднимаем max-height до scrollHeight
     body.style.opacity = "1";
     body.style.transform = "translateY(0px)";
-
-    // max-height анимируется только если известна высота
     body.style.maxHeight = "0px";
     requestAnimationFrame(() => {
-      const h = body.scrollHeight || 0;
-      body.style.maxHeight = h + "px";
+      body.style.maxHeight = (body.scrollHeight || 0) + "px";
     });
   }
 
-  function normalizeItems(root) {
+  function setActive(root, acc, toggleIfActive) {
     const items = qsa(root, SEL.item);
-    items.forEach((item) => {
-      const body = getBody(item);
-      if (body) prepBody(body);
-    });
-    return items;
-  }
+    if (!items.length) return;
 
-  function setActive(root, items, acc, opts) {
-    const keepOpen = !!(opts && opts.keepOpen);
     const target = items.find((it) => String(it.getAttribute("data-acc")) === String(acc));
+    if (!target) return;
 
-    // если клик по активному и toggle включен, то закрываем
-    const alreadyActive = target && target.classList.contains("is-active");
-    const shouldClose = alreadyActive && !keepOpen && opts && opts.toggle === true;
+    const wasActive = target.classList.contains("is-active");
+    const shouldClose = toggleIfActive && wasActive;
 
     items.forEach((it) => {
-      const isTarget = it === target;
-      const body = getBody(it);
+      const body = it.querySelector(SEL.body);
 
-      if (isTarget && !shouldClose) {
+      if (!shouldClose && it === target) {
         it.classList.add("is-active");
         openBody(body);
       } else {
@@ -158,27 +138,27 @@
       }
     });
 
-    if (target && !shouldClose) {
+    // медиа и заголовки обновляем только при открытии
+    if (!shouldClose) {
       const title = target.getAttribute("data-title") || "";
-      updateHeadingChip(root, acc, title);
+      setGlobalHeadingChip(acc, title);
       setMedia(root, acc);
     }
   }
 
   function initRoot(root) {
-    const items = normalizeItems(root);
-    if (!items.length) return;
+    if (!root || root.__mkInited) return;
+    root.__mkInited = true;
 
-    // Выбираем стартовый пункт:
-    // 1) тот, что уже is-active
-    // 2) иначе первый по data-acc
-    let start = items.find((it) => it.classList.contains("is-active")) || items[0];
-    const startAcc = start.getAttribute("data-acc") || "1";
+    // закрываем все тела на старте, чтобы не было "все раскрыто"
+    qsa(root, SEL.item).forEach((it) => closeBody(it.querySelector(SEL.body)));
 
-    // Принудительно приводим к нормальному состоянию (чтобы не были все раскрыты)
-    setActive(root, items, startAcc, { keepOpen: true, toggle: true });
+    // стартовое: первый пункт
+    const first = root.querySelector(SEL.item);
+    const startAcc = (first && first.getAttribute("data-acc")) || "1";
+    setActive(root, startAcc, false);
 
-    // Клик по пунктам
+    // делегирование клика внутри блока
     root.addEventListener("click", (e) => {
       const item = e.target.closest(SEL.item);
       if (!item || !root.contains(item)) return;
@@ -186,25 +166,26 @@
       const acc = item.getAttribute("data-acc");
       if (!acc) return;
 
-      setActive(root, items, acc, { toggle: true });
+      setActive(root, acc, true);
     });
   }
 
   function boot() {
-    const roots = qsa(document, SEL.root);
-    roots.forEach(initRoot);
+    qsa(document, SEL.root).forEach(initRoot);
   }
 
-  // Tilda иногда дорисовывает DOM после ready, поэтому делаем 2 прохода
+  // Tilda может дорисовывать DOM позже, поэтому несколько проходов
   if (document.readyState === "loading") {
     document.addEventListener("DOMContentLoaded", () => {
       boot();
-      setTimeout(boot, 400);
-      setTimeout(boot, 1200);
+      setTimeout(boot, 300);
+      setTimeout(boot, 900);
+      setTimeout(boot, 1600);
     });
   } else {
     boot();
-    setTimeout(boot, 400);
-    setTimeout(boot, 1200);
+    setTimeout(boot, 300);
+    setTimeout(boot, 900);
+    setTimeout(boot, 1600);
   }
 })();
