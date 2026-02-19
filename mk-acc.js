@@ -13,7 +13,7 @@
     if (!items.length) return;
 
     const keyOf = (el) => el && el.getAttribute("data-acc");
-    const panelOf = (item) => item && item.querySelector(".mk-acc-body"); // твой раскрывающийся блок
+    const panelOf = (item) => item && item.querySelector(".mk-acc-body");
 
     const defaultItem = items[0];
     const defaultKey = keyOf(defaultItem) || "1";
@@ -32,30 +32,25 @@
         panel.style.maxHeight = "0px";
         return 0;
       }
-
-      // важно: scrollHeight корректный, когда элемент уже видим
       const h = panel.scrollHeight || 0;
       panel.style.maxHeight = h + "px";
       return h;
     }
 
-    // Главная магия: разъезжание в Zero через translateY
     function relayout() {
-      // сбрасываем
-      items.forEach((it) => { it.style.transform = "translateY(0px)"; });
+      // сброс
+      items.forEach((it) => it.style.setProperty("--mk-shift", "0px"));
 
-      // вычисляем смещения сверху вниз
       let shift = 0;
 
       items.forEach((it) => {
-        it.style.transform = "translateY(" + shift + "px)";
+        it.style.setProperty("--mk-shift", shift + "px");
 
         if (it.classList.contains("is-active")) {
           const panel = panelOf(it);
           const extra = panel ? (panel.scrollHeight || 0) : 0;
 
-          // extra это высота раскрывающегося текста
-          // + небольшой воздух, чтобы выглядело как у Framer
+          // воздух между карточками, подстрой если надо
           shift += extra + 14;
         }
       });
@@ -74,10 +69,10 @@
       });
 
       media.forEach((m) => m.classList.toggle("is-active", keyOf(m) === key));
-
       setLeftHeader(title, key);
 
       requestAnimationFrame(relayout);
+      setTimeout(relayout, 60);
     }
 
     function closeAllKeepDefaultMedia() {
@@ -86,7 +81,6 @@
         openPanel(i, false);
       });
 
-      // медиа возвращаем к дефолту
       media.forEach((m) => m.classList.remove("is-active"));
       const defMedia = media.find((m) => keyOf(m) === defaultKey) || media[0];
       if (defMedia) defMedia.classList.add("is-active");
@@ -94,12 +88,13 @@
       setLeftHeader(defaultTitle, defaultKey);
 
       requestAnimationFrame(relayout);
+      setTimeout(relayout, 60);
     }
 
-    // старт
+    // init
     setActive(defaultKey);
 
-    // клик
+    // click
     root.addEventListener("click", function (e) {
       const item = e.target.closest(".mk-acc-item");
       if (!item || !root.contains(item)) return;
@@ -107,20 +102,18 @@
       const key = keyOf(item);
       if (!key) return;
 
-      // toggle: клик по активному закрывает
       if (item.classList.contains("is-active")) closeAllKeepDefaultMedia();
       else setActive(key);
     }, true);
 
-    // пересчет при ресайзе и при подгрузке шрифтов
+    // resize fix
     window.addEventListener("resize", function () {
       const active = items.find((i) => i.classList.contains("is-active"));
       if (active) openPanel(active, true);
       relayout();
     });
 
-    // небольшой повторный пересчет, когда Tilda дорисовала все
-    setTimeout(relayout, 400);
+    setTimeout(relayout, 300);
     setTimeout(relayout, 1200);
   }
 
