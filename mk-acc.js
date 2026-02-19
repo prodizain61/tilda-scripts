@@ -1,92 +1,210 @@
+/* mk-acc.js
+   Аккордион + смена медиа + обновление (01) и заголовка
+   Разметка (важно):
+   - На контейнер блока: class="mk-acc"
+   - На каждый пункт: class="mk-acc-item" + data-acc="1|2|3" + data-title="Брендам одежды"
+   - На каждую сцену медиа: class="mk-acc-media" + data-acc="1|2|3"
+   - На текст с номером (01): атрибут data-mk-chip="1" (value любое)
+   - На текст с заголовком: атрибут data-mk-heading="1" (value любое)
+
+   Контент пункта (раскрывающаяся часть) желательно завернуть в отдельную группу
+   и дать ей class="mk-acc-body" (или data-mk-body="1").
+   Если тела нет, скрипт все равно будет менять активный пункт, медиа, heading/chip.
+*/
+
 (function () {
-  function toArr(list) { return Array.prototype.slice.call(list || []); }
-  function pad2(n) { var s = String(n || ""); return s.length >= 2 ? s : "0" + s; }
+  "use strict";
 
-  function initOne(root) {
-    if (!root || root.__mkAccInited) return;
-    root.__mkAccInited = true;
+  const EASE = "cubic-bezier(0.16, 1, 0.3, 1)";
+  const DUR = 520; // мягче, как Framer
+  const FADE = 420;
 
-    var items = toArr(root.querySelectorAll(".mk-acc-item"));
-    var media = toArr(root.querySelectorAll(".mk-acc-media"));
-    var headingEls = toArr(root.querySelectorAll("[data-mk-heading]"));
-    var chipEls = toArr(root.querySelectorAll("[data-mk-chip]"));
+  const SEL = {
+    root: ".mk-acc",
+    item: ".mk-acc-item",
+    media: ".mk-acc-media",
+    body: ".mk-acc-body, [data-mk-body]",
+    heading: "[data-mk-heading]",
+    chip: "[data-mk-chip]",
+  };
 
-    if (!items.length) return;
+  function pad2(n) {
+    n = String(n || "");
+    return n.length >= 2 ? n : "0" + n;
+  }
 
-    function keyOf(el) { return el ? el.getAttribute("data-acc") : null; }
+  function qs(root, sel) {
+    return root.querySelector(sel);
+  }
+  function qsa(root, sel) {
+    return Array.from(root.querySelectorAll(sel));
+  }
 
-    function setLeft(title, key) {
-      headingEls.forEach(function (el) { el.textContent = title || ""; });
-      chipEls.forEach(function (el) { el.textContent = "(" + pad2(key) + ")"; });
-    }
+  function ensureMediaLayout(mediaEls) {
+    if (!mediaEls.length) return;
+    const parent = mediaEls[0].parentElement;
+    if (!parent) return;
 
-    function setActive(key) {
-      if (!key) return;
+    // чтобы сцены лежали друг на друге
+    const st = window.getComputedStyle(parent);
+    if (st.position === "static") parent.style.position = "relative";
 
-      var activeItem = items.find(function (i) { return keyOf(i) === key; });
-      var title = activeItem ? (activeItem.getAttribute("data-title") || "") : "";
+    mediaEls.forEach((el) => {
+      el.style.position = "absolute";
+      el.style.inset = "0";
+      el.style.transition = `opacity ${FADE}ms ${EASE}, transform ${FADE}ms ${EASE}`;
+      el.style.willChange = "opacity, transform";
+    });
+  }
 
-      items.forEach(function (i) {
-        i.classList.toggle("is-active", keyOf(i) === key);
-      });
+  function setMedia(root, acc) {
+    const scenes = qsa(root, SEL.media);
+    if (!scenes.length) return;
 
-      media.forEach(function (m) {
-        m.classList.toggle("is-active", keyOf(m) === key);
-      });
+    ensureMediaLayout(scenes);
 
-      setLeft(title, key);
-    }
+    scenes.forEach((scene) => {
+      const a = scene.getAttribute("data-acc");
+      const isOn = String(a) === String(acc);
 
-    function closeAllToDefault() {
-      var first = items[0];
-      var k = keyOf(first) || "1";
-
-      items.forEach(function (i) { i.classList.remove("is-active"); });
-      media.forEach(function (m) { m.classList.remove("is-active"); });
-
-      var defMedia = media.find(function (m) { return keyOf(m) === k; }) || media[0];
-      if (defMedia) defMedia.classList.add("is-active");
-
-      var title = (first && first.getAttribute("data-title")) || "";
-      setLeft(title, k);
-    }
-
-    // init default
-    var defaultKey = keyOf(items[0]) || "1";
-    setActive(defaultKey);
-
-    // ONE handler on root (event delegation) - Tilda friendly
-    root.addEventListener("click", function (e) {
-      var item = e.target.closest(".mk-acc-item");
-      if (!item || !root.contains(item)) return;
-
-      var key = keyOf(item);
-      if (!key) return;
-
-      if (item.classList.contains("is-active")) {
-        closeAllToDefault();
+      if (isOn) {
+        scene.style.opacity = "1";
+        scene.style.pointerEvents = "auto";
+        scene.style.transform = "translateY(0px)";
+        scene.style.visibility = "visible";
       } else {
-        setActive(key);
+        scene.style.opacity = "0";
+        scene.style.pointerEvents = "none";
+        scene.style.transform = "translateY(8px)";
+        scene.style.visibility = "hidden";
       }
     });
   }
 
-  function bootOnce() {
-    var roots = toArr(document.querySelectorAll(".mk-acc"));
-    if (!roots.length) return false;
-    roots.forEach(initOne);
-    return true;
+  function updateHeadingChip(root, acc, title) {
+    const h = qs(root, SEL.heading);
+    const c = qs(root, SEL.chip);
+
+    if (h) h.textContent = title || "";
+    if (c) c.textContent = "(" + pad2(acc) + ")";
   }
 
-  function bootWithRetry() {
-    var tries = 0, maxTries = 60, delay = 150;
-    var timer = setInterval(function () {
-      tries += 1;
-      var ok = bootOnce();
-      if (ok || tries >= maxTries) clearInterval(timer);
-    }, delay);
+  function getBody(item) {
+    return item.querySelector(SEL.body);
   }
 
-  if (document.readyState === "complete") bootWithRetry();
-  else window.addEventListener("load", bootWithRetry);
+  function prepBody(body) {
+    if (!body) return;
+    body.style.overflow = "hidden";
+    body.style.willChange = "max-height, opacity, transform";
+    body.style.transition = [
+      `max-height ${DUR}ms ${EASE}`,
+      `opacity ${Math.min(DUR, 420)}ms ${EASE}`,
+      `transform ${Math.min(DUR, 420)}ms ${EASE}`,
+    ].join(", ");
+  }
+
+  function closeBody(body) {
+    if (!body) return;
+    prepBody(body);
+    body.style.maxHeight = "0px";
+    body.style.opacity = "0";
+    body.style.transform = "translateY(-4px)";
+  }
+
+  function openBody(body) {
+    if (!body) return;
+    prepBody(body);
+
+    // сначала в "почти открытое" состояние, потом поднимаем max-height до scrollHeight
+    body.style.opacity = "1";
+    body.style.transform = "translateY(0px)";
+
+    // max-height анимируется только если известна высота
+    body.style.maxHeight = "0px";
+    requestAnimationFrame(() => {
+      const h = body.scrollHeight || 0;
+      body.style.maxHeight = h + "px";
+    });
+  }
+
+  function normalizeItems(root) {
+    const items = qsa(root, SEL.item);
+    items.forEach((item) => {
+      const body = getBody(item);
+      if (body) prepBody(body);
+    });
+    return items;
+  }
+
+  function setActive(root, items, acc, opts) {
+    const keepOpen = !!(opts && opts.keepOpen);
+    const target = items.find((it) => String(it.getAttribute("data-acc")) === String(acc));
+
+    // если клик по активному и toggle включен, то закрываем
+    const alreadyActive = target && target.classList.contains("is-active");
+    const shouldClose = alreadyActive && !keepOpen && opts && opts.toggle === true;
+
+    items.forEach((it) => {
+      const isTarget = it === target;
+      const body = getBody(it);
+
+      if (isTarget && !shouldClose) {
+        it.classList.add("is-active");
+        openBody(body);
+      } else {
+        it.classList.remove("is-active");
+        closeBody(body);
+      }
+    });
+
+    if (target && !shouldClose) {
+      const title = target.getAttribute("data-title") || "";
+      updateHeadingChip(root, acc, title);
+      setMedia(root, acc);
+    }
+  }
+
+  function initRoot(root) {
+    const items = normalizeItems(root);
+    if (!items.length) return;
+
+    // Выбираем стартовый пункт:
+    // 1) тот, что уже is-active
+    // 2) иначе первый по data-acc
+    let start = items.find((it) => it.classList.contains("is-active")) || items[0];
+    const startAcc = start.getAttribute("data-acc") || "1";
+
+    // Принудительно приводим к нормальному состоянию (чтобы не были все раскрыты)
+    setActive(root, items, startAcc, { keepOpen: true, toggle: true });
+
+    // Клик по пунктам
+    root.addEventListener("click", (e) => {
+      const item = e.target.closest(SEL.item);
+      if (!item || !root.contains(item)) return;
+
+      const acc = item.getAttribute("data-acc");
+      if (!acc) return;
+
+      setActive(root, items, acc, { toggle: true });
+    });
+  }
+
+  function boot() {
+    const roots = qsa(document, SEL.root);
+    roots.forEach(initRoot);
+  }
+
+  // Tilda иногда дорисовывает DOM после ready, поэтому делаем 2 прохода
+  if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", () => {
+      boot();
+      setTimeout(boot, 400);
+      setTimeout(boot, 1200);
+    });
+  } else {
+    boot();
+    setTimeout(boot, 400);
+    setTimeout(boot, 1200);
+  }
 })();
