@@ -1,73 +1,111 @@
+/* mk-acc.js
+   Accordion + media switch for Tilda Zero
+   Uses:
+   - root: .mk-acc
+   - items: .mk-acc-item  (each needs data-acc="1|2|3" and data-title="...")
+   - media: .mk-acc-media (each needs data-acc="1|2|3")
+   - left header (optional): element with data-mk-heading
+   - left chip (optional): element with data-mk-chip
+*/
+
 (function () {
-  function qsa(root, sel) {
-    return Array.prototype.slice.call(root.querySelectorAll(sel));
+  function toArr(list) {
+    return Array.prototype.slice.call(list || []);
   }
 
-  function init(root) {
-    // защита от повторной инициализации
-    if (root.__mkAccInited) return;
+  function pad2(n) {
+    var s = String(n || "");
+    return s.length >= 2 ? s : "0" + s;
+  }
+
+  function initOne(root) {
+    if (!root || root.__mkAccInited) return;
     root.__mkAccInited = true;
 
-    var items = qsa(root, '.mk-acc-item');
-    var media = qsa(root, '.mk-acc-media');
-    var chipEl = root.querySelector('.mk-acc-chip');
-    var headingEl = root.querySelector('.mk-acc-heading');
+    var items = toArr(root.querySelectorAll(".mk-acc-item"));
+    var media = toArr(root.querySelectorAll(".mk-acc-media"));
 
-    // если нет связки, выходим
-    if (!items.length || !media.length) return;
+    // Optional: left-side title + chip
+    var headingEl = root.querySelector("[data-mk-heading]");
+    var chipEl = root.querySelector("[data-mk-chip]");
 
-    function keyOf(el) {
-      return el.getAttribute('data-acc');
+    // If no media, do not stop items from working.
+    // We still allow accordion to operate even without media.
+    if (!items.length) return;
+
+    function getKey(el) {
+      return el ? el.getAttribute("data-acc") : null;
     }
 
-    var defaultItem = items[0];
-    var defaultKey = keyOf(defaultItem) || '1';
-    var defaultTitle = defaultItem.getAttribute('data-title') || '';
-
     function setLeftHeader(title, key) {
-      if (headingEl) headingEl.textContent = title || '';
-      if (chipEl) {
-        var n = String(key || '').padStart(2, '0');
-        chipEl.textContent = '(' + n + ')';
-      }
+      if (headingEl) headingEl.textContent = title || "";
+      if (chipEl) chipEl.textContent = "(" + pad2(key) + ")";
     }
 
     function setActive(key) {
-      var activeItem = items.find(function (i) { return keyOf(i) === key; });
-      if (!activeItem) return;
+      if (!key) return;
+
+      // Find matching item
+      var activeItem = items.find(function (i) {
+        return getKey(i) === key;
+      });
 
       items.forEach(function (i) {
-        i.classList.toggle('is-active', keyOf(i) === key);
+        i.classList.toggle("is-active", getKey(i) === key);
+      });
+
+      // Media can be absent, do not break logic
+      media.forEach(function (m) {
+        m.classList.toggle("is-active", getKey(m) === key);
+      });
+
+      if (activeItem) {
+        var title = activeItem.getAttribute("data-title") || "";
+        setLeftHeader(title, key);
+      } else {
+        setLeftHeader("", key);
+      }
+    }
+
+    function closeAllToDefault() {
+      // Default is first item key (or "1")
+      var first = items[0];
+      var k = getKey(first) || "1";
+
+      // Keep media default visible
+      items.forEach(function (i) {
+        i.classList.remove("is-active");
       });
 
       media.forEach(function (m) {
-        m.classList.toggle('is-active', keyOf(m) === key);
+        m.classList.remove("is-active");
       });
 
-      setLeftHeader(activeItem.getAttribute('data-title') || '', key);
+      // Show default media, but keep accordion closed (no active items)
+      var defMedia = media.find(function (m) {
+        return getKey(m) === k;
+      });
+      if (!defMedia && media[0]) defMedia = media[0];
+      if (defMedia) defMedia.classList.add("is-active");
+
+      var title = (first && first.getAttribute("data-title")) || "";
+      setLeftHeader(title, k);
     }
 
-    function closeAll() {
-      items.forEach(function (i) { i.classList.remove('is-active'); });
-      media.forEach(function (m) { m.classList.remove('is-active'); });
-
-      setLeftHeader(defaultTitle, defaultKey);
-
-      var defMedia = media.find(function (m) { return keyOf(m) === defaultKey; }) || media[0];
-      if (defMedia) defMedia.classList.add('is-active');
-    }
-
-    // стартовое состояние
+    // Initial state: first item active (accordion open)
+    var defaultKey = getKey(items[0]) || "1";
     setActive(defaultKey);
 
-    // клики
-    items.forEach(function (i) {
-      i.addEventListener('click', function () {
-        var key = keyOf(i);
+    // Click handlers with toggle close on active item
+    items.forEach(function (item) {
+      item.style.cursor = "pointer";
+      item.addEventListener("click", function () {
+        var key = getKey(item);
         if (!key) return;
 
-        if (i.classList.contains('is-active')) {
-          closeAll(); // toggle закрывает
+        if (item.classList.contains("is-active")) {
+          // Toggle: close active back
+          closeAllToDefault();
           return;
         }
         setActive(key);
@@ -76,16 +114,15 @@
   }
 
   function bootOnce() {
-    var roots = document.querySelectorAll('.mk-acc');
+    var roots = toArr(document.querySelectorAll(".mk-acc"));
     if (!roots.length) return false;
-
-    roots.forEach(function (root) { init(root); });
+    roots.forEach(initOne);
     return true;
   }
 
   function bootWithRetry() {
     var tries = 0;
-    var maxTries = 40;     // 40 * 150мс = 6 секунд
+    var maxTries = 60; // 60 * 150ms = 9s
     var delay = 150;
 
     var timer = setInterval(function () {
@@ -95,10 +132,10 @@
     }, delay);
   }
 
-  // запускаем после полной загрузки и с ретраями
-  if (document.readyState === 'complete') {
+  // Tilda can render Zero content after initial DOM ready, so we retry.
+  if (document.readyState === "complete") {
     bootWithRetry();
   } else {
-    window.addEventListener('load', bootWithRetry);
+    window.addEventListener("load", bootWithRetry);
   }
 })();
