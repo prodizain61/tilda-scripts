@@ -1,135 +1,147 @@
 (function () {
-  "use strict";
+  function toArr(list){ return Array.prototype.slice.call(list || []); }
 
-  var RECS = ["rec850499661", "rec1932878341"];
+  function initOne(root){
+    if(!root || root.__mkAccHeightInited) return;
+    root.__mkAccHeightInited = true;
 
-  function toArr(list) {
-    return Array.prototype.slice.call(list || []);
-  }
+    var items = toArr(root.querySelectorAll(".mk-acc-item"));
+    var media = toArr(root.querySelectorAll(".mk-acc-media"));
+    if(!items.length) return;
 
-  function pad2(n) {
-    var s = String(n || "");
-    return s.length >= 2 ? s : "0" + s;
-  }
+    function keyOf(el){ return el ? el.getAttribute("data-acc") : null; }
 
-  function pickTextNode(el) {
-    if (!el) return null;
-    return el.querySelector(".tn-atom") || el;
-  }
+    // считаем высоту закрытого состояния (только заголовок + padding)
+    function setClosedHeight(item){
+      if(!item) return;
+      var title = item.querySelector(".mk-acc-title");
+      if(!title) return;
 
-  function keyOf(el) {
-    return el ? el.getAttribute("data-acc") : null;
-  }
+      // временно убираем фикс высоты, чтобы корректно измерить
+      item.style.height = "auto";
 
-  function initOneRec(recEl) {
-    if (!recEl || recEl.__mkAccInited) return;
-    recEl.__mkAccInited = true;
+      var cs = window.getComputedStyle(item);
+      var padT = parseFloat(cs.paddingTop) || 0;
+      var padB = parseFloat(cs.paddingBottom) || 0;
 
-    // accordion roots in this rec
-    var roots = toArr(recEl.querySelectorAll(".mk-acc"));
-    if (!roots.length) return;
-
-    // IMPORTANT: media can be anywhere inside the same rec
-    var mediaAll = toArr(recEl.querySelectorAll(".mk-acc-media"));
-
-    // global header/chip inside this rec
-    var headingEls = toArr(recEl.querySelectorAll(".mk-acc-heading, [data-mk-heading]"))
-      .map(pickTextNode)
-      .filter(Boolean);
-    var chipEls = toArr(recEl.querySelectorAll(".mk-acc-chip, [data-mk-chip]"))
-      .map(pickTextNode)
-      .filter(Boolean);
-
-    function setHeader(title, key) {
-      var chipText = "(" + pad2(key) + ")";
-      headingEls.forEach(function (el) { el.textContent = title || ""; });
-      chipEls.forEach(function (el) { el.textContent = chipText; });
+      var h = title.offsetHeight + padT + padB;
+      item.style.height = Math.ceil(h) + "px";
+      item.dataset.closedH = String(Math.ceil(h));
     }
 
-    roots.forEach(function (root) {
-      if (root.__mkAccRootInited) return;
-      root.__mkAccRootInited = true;
+    // считаем высоту открытого состояния (весь контент)
+    function setOpenHeight(item){
+      if(!item) return;
 
-      var items = toArr(root.querySelectorAll(".mk-acc-item"));
-      if (!items.length) return;
+      // раскрываем body для корректного измерения scrollHeight
+      var body = item.querySelector(".mk-acc-body");
+      var title = item.querySelector(".mk-acc-title");
+      if(!title) return;
 
-      // default = first item
-      var first = items[0];
-      var defaultKey = keyOf(first) || "1";
-      var defaultTitle = (first && first.getAttribute("data-title")) || "";
+      // сброс высоты, чтобы взять натуральную
+      item.style.height = "auto";
 
-      function setActive(key) {
-        if (!key) return;
+      var cs = window.getComputedStyle(item);
+      var padT = parseFloat(cs.paddingTop) || 0;
+      var padB = parseFloat(cs.paddingBottom) || 0;
 
-        var activeItem = items.find(function (i) { return keyOf(i) === key; });
-        var title = activeItem ? (activeItem.getAttribute("data-title") || "") : "";
+      var bodyH = 0;
+      if(body){
+        // если body скрыт max-height 0, scrollHeight всё равно даст полную высоту контента
+        bodyH = body.scrollHeight;
+      }
 
-        // items
-        items.forEach(function (i) {
-          i.classList.toggle("is-active", keyOf(i) === key);
+      // margin-top body (20px) учтём явно
+      var bodyMt = 0;
+      if(body){
+        bodyMt = parseFloat(window.getComputedStyle(body).marginTop) || 0;
+      }
+
+      var h = title.offsetHeight + bodyMt + bodyH + padT + padB;
+      item.dataset.openH = String(Math.ceil(h));
+      // возвращаем height в px для анимации
+      item.style.height = Math.ceil(h) + "px";
+    }
+
+    function applyHeights(){
+      items.forEach(function(item){
+        // сначала посчитаем закрытую высоту
+        setClosedHeight(item);
+
+        // если активная - посчитаем открытую и применим
+        if(item.classList.contains("is-active")){
+          setOpenHeight(item);
+        }
+      });
+    }
+
+    function setActive(key){
+      items.forEach(function(i){
+        var on = keyOf(i) === key;
+        i.classList.toggle("is-active", on);
+      });
+
+      media.forEach(function(m){
+        m.classList.toggle("is-active", keyOf(m) === key);
+      });
+
+      // после смены класса - пересчитать и применить высоту
+      // (чуть в timeout чтобы браузер успел применить классы)
+      setTimeout(function(){
+        items.forEach(function(item){
+          if(item.classList.contains("is-active")) setOpenHeight(item);
+          else setClosedHeight(item);
         });
+      }, 0);
+    }
 
-        // media (across whole rec)
-        if (mediaAll.length) {
-          mediaAll.forEach(function (m) {
-            m.classList.toggle("is-active", keyOf(m) === key);
-          });
-        }
+    function closeToDefault(){
+      // закрываем всё
+      items.forEach(function(i){ i.classList.remove("is-active"); });
 
-        // header/chip
-        setHeader(title, key);
-      }
+      // оставляем первое медиа активным (как у тебя было)
+      var first = items[0];
+      var k = keyOf(first) || "1";
 
-      function closeToDefault() {
-        // close all items
-        items.forEach(function (i) { i.classList.remove("is-active"); });
+      media.forEach(function(m){ m.classList.remove("is-active"); });
+      var defMedia = media.find(function(m){ return keyOf(m) === k; }) || media[0];
+      if(defMedia) defMedia.classList.add("is-active");
 
-        // keep default media visible (to avoid empty)
-        if (mediaAll.length) {
-          mediaAll.forEach(function (m) { m.classList.remove("is-active"); });
-          var defMedia = mediaAll.find(function (m) { return keyOf(m) === defaultKey; }) || mediaAll[0];
-          if (defMedia) defMedia.classList.add("is-active");
-        }
+      setTimeout(function(){
+        items.forEach(setClosedHeight);
+      }, 0);
+    }
 
-        setHeader(defaultTitle, defaultKey);
-      }
+    // init: откроем первый
+    var defaultKey = keyOf(items[0]) || "1";
+    setActive(defaultKey);
 
-      // init
-      setActive(defaultKey);
+    // клик
+    root.addEventListener("click", function(e){
+      var item = e.target.closest(".mk-acc-item");
+      if(!item || !root.contains(item)) return;
 
-      // click delegation
-      root.addEventListener("click", function (e) {
-        var item = e.target.closest(".mk-acc-item");
-        if (!item || !root.contains(item)) return;
+      var key = keyOf(item);
+      if(!key) return;
 
-        var key = keyOf(item);
-        if (!key) return;
+      if(item.classList.contains("is-active")) closeToDefault();
+      else setActive(key);
+    }, true);
 
-        if (item.classList.contains("is-active")) closeToDefault();
-        else setActive(key);
-      }, true);
+    // первичный расчёт и на ресайз
+    applyHeights();
+    window.addEventListener("resize", function(){
+      // перерасчёт высот при адаптиве/переносах
+      applyHeights();
     });
   }
 
-  function boot() {
-    RECS.forEach(function (id) {
-      var rec = document.getElementById(id);
-      if (rec) initOneRec(rec);
-    });
+  function boot(){
+    var roots = toArr(document.querySelectorAll(".mk-acc"));
+    if(!roots.length) return;
+    roots.forEach(initOne);
   }
 
-  // Tilda может дорисовать Zero позже — сделаем повторную инициализацию
-  function bootWithRetry() {
-    var tries = 0;
-    var maxTries = 100;
-    var timer = setInterval(function () {
-      tries += 1;
-      boot();
-      if (tries >= maxTries) clearInterval(timer);
-    }, 200);
-  }
-
-  if (document.readyState === "complete") bootWithRetry();
-  else window.addEventListener("load", bootWithRetry);
-
+  if(document.readyState === "complete") boot();
+  else window.addEventListener("load", boot);
 })();
