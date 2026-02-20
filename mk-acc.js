@@ -1,147 +1,171 @@
 (function () {
-  function toArr(list){ return Array.prototype.slice.call(list || []); }
+  function toArr(list) { return Array.prototype.slice.call(list || []); }
+  function pad2(n) { n = String(n || ""); return n.length >= 2 ? n : "0" + n; }
 
-  function initOne(root){
-    if(!root || root.__mkAccHeightInited) return;
-    root.__mkAccHeightInited = true;
+  function pickTextNode(el) {
+    if (!el) return null;
+    return el.querySelector(".tn-atom") || el;
+  }
 
-    var items = toArr(root.querySelectorAll(".mk-acc-item"));
-    var media = toArr(root.querySelectorAll(".mk-acc-media"));
-    if(!items.length) return;
+  function getGlobalHeaderEls() {
+    var headingSrc = toArr(document.querySelectorAll(".mk-acc-heading, [data-mk-heading]"));
+    var chipSrc = toArr(document.querySelectorAll(".mk-acc-chip, [data-mk-chip]"));
+    return {
+      heading: headingSrc.map(pickTextNode).filter(Boolean),
+      chip: chipSrc.map(pickTextNode).filter(Boolean)
+    };
+  }
 
-    function keyOf(el){ return el ? el.getAttribute("data-acc") : null; }
+  function setGlobalHeader(title, key) {
+    var els = getGlobalHeaderEls();
+    var chipText = "(" + pad2(key) + ")";
+    els.heading.forEach(function (el) { el.textContent = title || ""; });
+    els.chip.forEach(function (el) { el.textContent = chipText; });
+  }
 
-    // считаем высоту закрытого состояния (только заголовок + padding)
-    function setClosedHeight(item){
-      if(!item) return;
-      var title = item.querySelector(".mk-acc-title");
-      if(!title) return;
+  /* ===== HEIGHT ENGINE (fix for Zero Block fixed tn-elem size) ===== */
 
-      // временно убираем фикс высоты, чтобы корректно измерить
-      item.style.height = "auto";
+  function getBoxForSizing(itemEl){
+    // если класс на tn-atom — поднимаемся к tn-elem, у него реальная height в инлайне
+    return itemEl.closest(".tn-elem") || itemEl;
+  }
 
-      var cs = window.getComputedStyle(item);
-      var padT = parseFloat(cs.paddingTop) || 0;
-      var padB = parseFloat(cs.paddingBottom) || 0;
+  function getPaddingPx(el){
+    var cs = window.getComputedStyle(el);
+    return {
+      pt: parseFloat(cs.paddingTop) || 0,
+      pb: parseFloat(cs.paddingBottom) || 0
+    };
+  }
 
-      var h = title.offsetHeight + padT + padB;
-      item.style.height = Math.ceil(h) + "px";
-      item.dataset.closedH = String(Math.ceil(h));
+  function setBoxTransition(box){
+    // чтобы не зависеть от твоего общего CSS, фиксируем transition на высоту у box
+    if(!box) return;
+    box.style.overflow = "hidden";
+    box.style.transition = "height .75s cubic-bezier(.16, 1, .3, 1)";
+    box.style.willChange = "height";
+  }
+
+  function measureClosedHeight(itemEl){
+    var title = itemEl.querySelector(".mk-acc-title");
+    if(!title) return null;
+    var pad = getPaddingPx(itemEl);
+    return Math.ceil(title.getBoundingClientRect().height + pad.pt + pad.pb);
+  }
+
+  function measureOpenHeight(itemEl){
+    var title = itemEl.querySelector(".mk-acc-title");
+    var body  = itemEl.querySelector(".mk-acc-body");
+    if(!title) return null;
+
+    var pad = getPaddingPx(itemEl);
+
+    var bodyH = 0;
+    var bodyMt = 0;
+    if(body){
+      bodyH = body.scrollHeight; // полная высота контента даже при max-height:0
+      bodyMt = parseFloat(window.getComputedStyle(body).marginTop) || 0;
     }
 
-    // считаем высоту открытого состояния (весь контент)
-    function setOpenHeight(item){
-      if(!item) return;
+    return Math.ceil(title.getBoundingClientRect().height + bodyMt + bodyH + pad.pt + pad.pb);
+  }
 
-      // раскрываем body для корректного измерения scrollHeight
-      var body = item.querySelector(".mk-acc-body");
-      var title = item.querySelector(".mk-acc-title");
-      if(!title) return;
+  function applyHeights(items){
+    items.forEach(function(itemEl){
+      var box = getBoxForSizing(itemEl);
+      setBoxTransition(box);
 
-      // сброс высоты, чтобы взять натуральную
-      item.style.height = "auto";
-
-      var cs = window.getComputedStyle(item);
-      var padT = parseFloat(cs.paddingTop) || 0;
-      var padB = parseFloat(cs.paddingBottom) || 0;
-
-      var bodyH = 0;
-      if(body){
-        // если body скрыт max-height 0, scrollHeight всё равно даст полную высоту контента
-        bodyH = body.scrollHeight;
-      }
-
-      // margin-top body (20px) учтём явно
-      var bodyMt = 0;
-      if(body){
-        bodyMt = parseFloat(window.getComputedStyle(body).marginTop) || 0;
-      }
-
-      var h = title.offsetHeight + bodyMt + bodyH + padT + padB;
-      item.dataset.openH = String(Math.ceil(h));
-      // возвращаем height в px для анимации
-      item.style.height = Math.ceil(h) + "px";
-    }
-
-    function applyHeights(){
-      items.forEach(function(item){
-        // сначала посчитаем закрытую высоту
-        setClosedHeight(item);
-
-        // если активная - посчитаем открытую и применим
-        if(item.classList.contains("is-active")){
-          setOpenHeight(item);
-        }
-      });
-    }
-
-    function setActive(key){
-      items.forEach(function(i){
-        var on = keyOf(i) === key;
-        i.classList.toggle("is-active", on);
-      });
-
-      media.forEach(function(m){
-        m.classList.toggle("is-active", keyOf(m) === key);
-      });
-
-      // после смены класса - пересчитать и применить высоту
-      // (чуть в timeout чтобы браузер успел применить классы)
-      setTimeout(function(){
-        items.forEach(function(item){
-          if(item.classList.contains("is-active")) setOpenHeight(item);
-          else setClosedHeight(item);
-        });
-      }, 0);
-    }
-
-    function closeToDefault(){
-      // закрываем всё
-      items.forEach(function(i){ i.classList.remove("is-active"); });
-
-      // оставляем первое медиа активным (как у тебя было)
-      var first = items[0];
-      var k = keyOf(first) || "1";
-
-      media.forEach(function(m){ m.classList.remove("is-active"); });
-      var defMedia = media.find(function(m){ return keyOf(m) === k; }) || media[0];
-      if(defMedia) defMedia.classList.add("is-active");
-
-      setTimeout(function(){
-        items.forEach(setClosedHeight);
-      }, 0);
-    }
-
-    // init: откроем первый
-    var defaultKey = keyOf(items[0]) || "1";
-    setActive(defaultKey);
-
-    // клик
-    root.addEventListener("click", function(e){
-      var item = e.target.closest(".mk-acc-item");
-      if(!item || !root.contains(item)) return;
-
-      var key = keyOf(item);
-      if(!key) return;
-
-      if(item.classList.contains("is-active")) closeToDefault();
-      else setActive(key);
-    }, true);
-
-    // первичный расчёт и на ресайз
-    applyHeights();
-    window.addEventListener("resize", function(){
-      // перерасчёт высот при адаптиве/переносах
-      applyHeights();
+      // выставляем “правильную” высоту по текущему состоянию
+      var h = itemEl.classList.contains("is-active") ? measureOpenHeight(itemEl) : measureClosedHeight(itemEl);
+      if(h != null) box.style.height = h + "px";
     });
   }
 
-  function boot(){
-    var roots = toArr(document.querySelectorAll(".mk-acc"));
-    if(!roots.length) return;
-    roots.forEach(initOne);
+  function initOne(root) {
+    if (!root || root.__mkAccInited) return;
+    root.__mkAccInited = true;
+
+    var items = toArr(root.querySelectorAll(".mk-acc-item"));
+    var media = toArr(root.querySelectorAll(".mk-acc-media"));
+    if (!items.length) return;
+
+    function keyOf(el) { return el ? el.getAttribute("data-acc") : null; }
+
+    function setActive(key) {
+      if (!key) return;
+
+      var activeItem = items.find(function (i) { return keyOf(i) === key; });
+      var title = activeItem ? (activeItem.getAttribute("data-title") || "") : "";
+
+      items.forEach(function (i) {
+        i.classList.toggle("is-active", keyOf(i) === key);
+      });
+
+      media.forEach(function (m) {
+        m.classList.toggle("is-active", keyOf(m) === key);
+      });
+
+      setGlobalHeader(title, key);
+
+      // после смены классов — применяем высоты
+      setTimeout(function(){ applyHeights(items); }, 0);
+    }
+
+    function closeToDefault() {
+      var first = items[0];
+      var k = keyOf(first) || "1";
+
+      items.forEach(function (i) { i.classList.remove("is-active"); });
+
+      media.forEach(function (m) { m.classList.remove("is-active"); });
+      var defMedia = media.find(function (m) { return keyOf(m) === k; }) || media[0];
+      if (defMedia) defMedia.classList.add("is-active");
+
+      var title = (first && first.getAttribute("data-title")) || "";
+      setGlobalHeader(title, k);
+
+      setTimeout(function(){ applyHeights(items); }, 0);
+    }
+
+    // init default
+    var defaultKey = keyOf(items[0]) || "1";
+    setActive(defaultKey);
+
+    // click delegation
+    root.addEventListener("click", function (e) {
+      var item = e.target.closest(".mk-acc-item");
+      if (!item || !root.contains(item)) return;
+
+      var key = keyOf(item);
+      if (!key) return;
+
+      if (item.classList.contains("is-active")) closeToDefault();
+      else setActive(key);
+    }, true);
+
+    // first sizing + resize
+    setTimeout(function(){ applyHeights(items); }, 0);
+    window.addEventListener("resize", function(){
+      applyHeights(items);
+    });
   }
 
-  if(document.readyState === "complete") boot();
-  else window.addEventListener("load", boot);
+  function bootOnce() {
+    var roots = toArr(document.querySelectorAll(".mk-acc"));
+    if (!roots.length) return false;
+    roots.forEach(initOne);
+    return true;
+  }
+
+  function bootWithRetry() {
+    var tries = 0, maxTries = 80, delay = 150;
+    var timer = setInterval(function () {
+      tries += 1;
+      var ok = bootOnce();
+      if (ok || tries >= maxTries) clearInterval(timer);
+    }, delay);
+  }
+
+  if (document.readyState === "complete") bootWithRetry();
+  else window.addEventListener("load", bootWithRetry);
 })();
