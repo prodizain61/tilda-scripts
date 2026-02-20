@@ -1,15 +1,17 @@
 /* =========================
    FINAL JS (replace полностью)
-   Works with:
-   - .mk-acc container
-   - .mk-acc-item[data-acc][data-title]
-   - .mk-acc-media[data-acc]
-   - .mk-acc-chip / [data-mk-chip]
-   - .mk-acc-heading / [data-mk-heading]
+   Target: #rec1932878341
+   - init via MutationObserver (Tilda Zero loads late)
+   - toggle active item
+   - sync media by data-acc
+   - updates mk-acc-chip / mk-acc-heading (inside rec)
+   - body раскрывается по scrollHeight
    ========================= */
 
 (function () {
   "use strict";
+
+  var REC_ID = "rec1932878341";
 
   function toArr(list) {
     return Array.prototype.slice.call(list || []);
@@ -29,111 +31,126 @@
     return el ? el.getAttribute("data-acc") : null;
   }
 
-  function getGlobalHeaderEls() {
-    var headingSrc = toArr(document.querySelectorAll(".mk-acc-heading, [data-mk-heading]"));
-    var chipSrc = toArr(document.querySelectorAll(".mk-acc-chip, [data-mk-chip]"));
+  function setBodyOpen(item, open) {
+    var body = item.querySelector(".mk-acc-body");
+    if (!body) return;
 
-    return {
-      heading: headingSrc.map(pickTextNode).filter(Boolean),
-      chip: chipSrc.map(pickTextNode).filter(Boolean),
-    };
-  }
+    if (!open) {
+      body.style.maxHeight = "0px";
+      return;
+    }
 
-  function setGlobalHeader(title, key) {
-    var els = getGlobalHeaderEls();
-    els.heading.forEach(function (el) {
-      el.textContent = title || "";
-    });
-    els.chip.forEach(function (el) {
-      el.textContent = "(" + pad2(key) + ")";
+    // два кадра, чтобы корректно посчитать высоту после смены классов/шрифтов
+    requestAnimationFrame(function () {
+      body.style.maxHeight = body.scrollHeight + "px";
+      requestAnimationFrame(function () {
+        body.style.maxHeight = body.scrollHeight + "px";
+      });
     });
   }
 
-  function initOne(root) {
-    if (!root || root.__mkAccInited) return;
-    root.__mkAccInited = true;
+  function initAccordion(accRoot, recRoot) {
+    if (!accRoot || accRoot.__mkInited) return;
+    accRoot.__mkInited = true;
 
-    var items = toArr(root.querySelectorAll(".mk-acc-item"));
-    var media = toArr(root.querySelectorAll(".mk-acc-media"));
+    var items = toArr(accRoot.querySelectorAll(".mk-acc-item"));
     if (!items.length) return;
+
+    var media = toArr(recRoot.querySelectorAll(".mk-acc-media"));
+    var chipEl = pickTextNode(recRoot.querySelector(".mk-acc-chip, [data-mk-chip]"));
+    var headingEl = pickTextNode(recRoot.querySelector(".mk-acc-heading, [data-mk-heading]"));
 
     var defaultItem = items[0];
     var defaultKey = keyOf(defaultItem) || "1";
-    var defaultTitle = (defaultItem && defaultItem.getAttribute("data-title")) || "";
+    var defaultTitle = defaultItem.getAttribute("data-title") || "";
+
+    function setLeftHeader(title, key) {
+      if (headingEl) headingEl.textContent = title || "";
+      if (chipEl) chipEl.textContent = "(" + pad2(key) + ")";
+    }
 
     function setActive(key) {
-      var activeItem = items.find(function (i) {
-        return keyOf(i) === key;
-      });
+      var activeItem = items.find(function (i) { return keyOf(i) === key; });
       if (!activeItem) return;
 
       items.forEach(function (i) {
-        i.classList.toggle("is-active", keyOf(i) === key);
+        var isA = keyOf(i) === key;
+        i.classList.toggle("is-active", isA);
+        setBodyOpen(i, isA);
       });
 
-      media.forEach(function (m) {
-        m.classList.toggle("is-active", keyOf(m) === key);
-      });
+      if (media.length) {
+        media.forEach(function (m) {
+          m.classList.toggle("is-active", keyOf(m) === key);
+        });
+      }
 
-      setGlobalHeader(activeItem.getAttribute("data-title") || "", key);
+      setLeftHeader(activeItem.getAttribute("data-title") || "", key);
     }
 
     function closeAll() {
       items.forEach(function (i) {
         i.classList.remove("is-active");
+        setBodyOpen(i, false);
       });
 
-      media.forEach(function (m) {
-        m.classList.remove("is-active");
-      });
+      if (media.length) {
+        media.forEach(function (m) { m.classList.remove("is-active"); });
 
-      setGlobalHeader(defaultTitle, defaultKey);
+        var defaultMedia = media.find(function (m) { return keyOf(m) === defaultKey; }) || media[0];
+        if (defaultMedia) defaultMedia.classList.add("is-active");
+      }
 
-      // оставим дефолтное фото, чтобы не было пустоты
-      var defaultMedia = media.find(function (m) {
-        return keyOf(m) === defaultKey;
-      }) || media[0];
-
-      if (defaultMedia) defaultMedia.classList.add("is-active");
+      setLeftHeader(defaultTitle, defaultKey);
     }
 
-    // init: открыт первый
+    // init
     setActive(defaultKey);
 
-    // click handling
+    // click
     items.forEach(function (i) {
       i.addEventListener("click", function () {
         var key = keyOf(i);
         if (!key) return;
 
-        if (i.classList.contains("is-active")) {
-          closeAll();
-          return;
-        }
-        setActive(key);
+        if (i.classList.contains("is-active")) closeAll();
+        else setActive(key);
       });
+    });
+
+    // resize: пересчитать maxHeight активного
+    window.addEventListener("resize", function () {
+      var active = accRoot.querySelector(".mk-acc-item.is-active");
+      if (active) setBodyOpen(active, true);
     });
   }
 
-  function bootOnce() {
-    var roots = toArr(document.querySelectorAll("#rec850499661 .mk-acc"));
-    if (!roots.length) return false;
-    roots.forEach(initOne);
-    return true;
+  function boot() {
+    var recRoot = document.getElementById(REC_ID);
+    if (!recRoot) return;
+
+    var accs = toArr(recRoot.querySelectorAll(".mk-acc"));
+    if (!accs.length && recRoot.classList.contains("mk-acc")) accs = [recRoot];
+
+    accs.forEach(function (accRoot) {
+      initAccordion(accRoot, recRoot);
+    });
   }
 
-  function bootWithRetry() {
-    var tries = 0;
-    var maxTries = 80;
-    var delay = 150;
+  // Boot now + observe late render
+  boot();
 
-    var timer = setInterval(function () {
-      tries += 1;
-      var ok = bootOnce();
-      if (ok || tries >= maxTries) clearInterval(timer);
-    }, delay);
-  }
+  var obs = new MutationObserver(function () {
+    boot();
+  });
 
-  if (document.readyState === "complete") bootWithRetry();
-  else window.addEventListener("load", bootWithRetry);
+  document.addEventListener("DOMContentLoaded", boot);
+  window.addEventListener("load", boot);
+
+  obs.observe(document.documentElement, { childList: true, subtree: true });
+
+  // safety: stop observing after 15s
+  setTimeout(function () {
+    try { obs.disconnect(); } catch (e) {}
+  }, 15000);
 })();
