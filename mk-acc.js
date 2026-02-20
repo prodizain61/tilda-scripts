@@ -1,25 +1,10 @@
-/* =========================
-   FINAL JS (replace полностью)
-   Target: #rec1932878341
-   - init via MutationObserver (Tilda Zero loads late)
-   - toggle active item
-   - sync media by data-acc
-   - updates mk-acc-chip / mk-acc-heading (inside rec)
-   - body раскрывается по scrollHeight
-   ========================= */
-
 (function () {
   "use strict";
 
-  var REC_ID = "rec1932878341";
+  var RECS = ["rec850499661", "rec1932878341"];
 
   function toArr(list) {
     return Array.prototype.slice.call(list || []);
-  }
-
-  function pickTextNode(el) {
-    if (!el) return null;
-    return el.querySelector(".tn-atom") || el;
   }
 
   function pad2(n) {
@@ -27,130 +12,124 @@
     return s.length >= 2 ? s : "0" + s;
   }
 
+  function pickTextNode(el) {
+    if (!el) return null;
+    return el.querySelector(".tn-atom") || el;
+  }
+
   function keyOf(el) {
     return el ? el.getAttribute("data-acc") : null;
   }
 
-  function setBodyOpen(item, open) {
-    var body = item.querySelector(".mk-acc-body");
-    if (!body) return;
+  function initOneRec(recEl) {
+    if (!recEl || recEl.__mkAccInited) return;
+    recEl.__mkAccInited = true;
 
-    if (!open) {
-      body.style.maxHeight = "0px";
-      return;
+    // accordion roots in this rec
+    var roots = toArr(recEl.querySelectorAll(".mk-acc"));
+    if (!roots.length) return;
+
+    // IMPORTANT: media can be anywhere inside the same rec
+    var mediaAll = toArr(recEl.querySelectorAll(".mk-acc-media"));
+
+    // global header/chip inside this rec
+    var headingEls = toArr(recEl.querySelectorAll(".mk-acc-heading, [data-mk-heading]"))
+      .map(pickTextNode)
+      .filter(Boolean);
+    var chipEls = toArr(recEl.querySelectorAll(".mk-acc-chip, [data-mk-chip]"))
+      .map(pickTextNode)
+      .filter(Boolean);
+
+    function setHeader(title, key) {
+      var chipText = "(" + pad2(key) + ")";
+      headingEls.forEach(function (el) { el.textContent = title || ""; });
+      chipEls.forEach(function (el) { el.textContent = chipText; });
     }
 
-    // два кадра, чтобы корректно посчитать высоту после смены классов/шрифтов
-    requestAnimationFrame(function () {
-      body.style.maxHeight = body.scrollHeight + "px";
-      requestAnimationFrame(function () {
-        body.style.maxHeight = body.scrollHeight + "px";
-      });
-    });
-  }
+    roots.forEach(function (root) {
+      if (root.__mkAccRootInited) return;
+      root.__mkAccRootInited = true;
 
-  function initAccordion(accRoot, recRoot) {
-    if (!accRoot || accRoot.__mkInited) return;
-    accRoot.__mkInited = true;
+      var items = toArr(root.querySelectorAll(".mk-acc-item"));
+      if (!items.length) return;
 
-    var items = toArr(accRoot.querySelectorAll(".mk-acc-item"));
-    if (!items.length) return;
+      // default = first item
+      var first = items[0];
+      var defaultKey = keyOf(first) || "1";
+      var defaultTitle = (first && first.getAttribute("data-title")) || "";
 
-    var media = toArr(recRoot.querySelectorAll(".mk-acc-media"));
-    var chipEl = pickTextNode(recRoot.querySelector(".mk-acc-chip, [data-mk-chip]"));
-    var headingEl = pickTextNode(recRoot.querySelector(".mk-acc-heading, [data-mk-heading]"));
-
-    var defaultItem = items[0];
-    var defaultKey = keyOf(defaultItem) || "1";
-    var defaultTitle = defaultItem.getAttribute("data-title") || "";
-
-    function setLeftHeader(title, key) {
-      if (headingEl) headingEl.textContent = title || "";
-      if (chipEl) chipEl.textContent = "(" + pad2(key) + ")";
-    }
-
-    function setActive(key) {
-      var activeItem = items.find(function (i) { return keyOf(i) === key; });
-      if (!activeItem) return;
-
-      items.forEach(function (i) {
-        var isA = keyOf(i) === key;
-        i.classList.toggle("is-active", isA);
-        setBodyOpen(i, isA);
-      });
-
-      if (media.length) {
-        media.forEach(function (m) {
-          m.classList.toggle("is-active", keyOf(m) === key);
-        });
-      }
-
-      setLeftHeader(activeItem.getAttribute("data-title") || "", key);
-    }
-
-    function closeAll() {
-      items.forEach(function (i) {
-        i.classList.remove("is-active");
-        setBodyOpen(i, false);
-      });
-
-      if (media.length) {
-        media.forEach(function (m) { m.classList.remove("is-active"); });
-
-        var defaultMedia = media.find(function (m) { return keyOf(m) === defaultKey; }) || media[0];
-        if (defaultMedia) defaultMedia.classList.add("is-active");
-      }
-
-      setLeftHeader(defaultTitle, defaultKey);
-    }
-
-    // init
-    setActive(defaultKey);
-
-    // click
-    items.forEach(function (i) {
-      i.addEventListener("click", function () {
-        var key = keyOf(i);
+      function setActive(key) {
         if (!key) return;
 
-        if (i.classList.contains("is-active")) closeAll();
-        else setActive(key);
-      });
-    });
+        var activeItem = items.find(function (i) { return keyOf(i) === key; });
+        var title = activeItem ? (activeItem.getAttribute("data-title") || "") : "";
 
-    // resize: пересчитать maxHeight активного
-    window.addEventListener("resize", function () {
-      var active = accRoot.querySelector(".mk-acc-item.is-active");
-      if (active) setBodyOpen(active, true);
+        // items
+        items.forEach(function (i) {
+          i.classList.toggle("is-active", keyOf(i) === key);
+        });
+
+        // media (across whole rec)
+        if (mediaAll.length) {
+          mediaAll.forEach(function (m) {
+            m.classList.toggle("is-active", keyOf(m) === key);
+          });
+        }
+
+        // header/chip
+        setHeader(title, key);
+      }
+
+      function closeToDefault() {
+        // close all items
+        items.forEach(function (i) { i.classList.remove("is-active"); });
+
+        // keep default media visible (to avoid empty)
+        if (mediaAll.length) {
+          mediaAll.forEach(function (m) { m.classList.remove("is-active"); });
+          var defMedia = mediaAll.find(function (m) { return keyOf(m) === defaultKey; }) || mediaAll[0];
+          if (defMedia) defMedia.classList.add("is-active");
+        }
+
+        setHeader(defaultTitle, defaultKey);
+      }
+
+      // init
+      setActive(defaultKey);
+
+      // click delegation
+      root.addEventListener("click", function (e) {
+        var item = e.target.closest(".mk-acc-item");
+        if (!item || !root.contains(item)) return;
+
+        var key = keyOf(item);
+        if (!key) return;
+
+        if (item.classList.contains("is-active")) closeToDefault();
+        else setActive(key);
+      }, true);
     });
   }
 
   function boot() {
-    var recRoot = document.getElementById(REC_ID);
-    if (!recRoot) return;
-
-    var accs = toArr(recRoot.querySelectorAll(".mk-acc"));
-    if (!accs.length && recRoot.classList.contains("mk-acc")) accs = [recRoot];
-
-    accs.forEach(function (accRoot) {
-      initAccordion(accRoot, recRoot);
+    RECS.forEach(function (id) {
+      var rec = document.getElementById(id);
+      if (rec) initOneRec(rec);
     });
   }
 
-  // Boot now + observe late render
-  boot();
+  // Tilda может дорисовать Zero позже — сделаем повторную инициализацию
+  function bootWithRetry() {
+    var tries = 0;
+    var maxTries = 100;
+    var timer = setInterval(function () {
+      tries += 1;
+      boot();
+      if (tries >= maxTries) clearInterval(timer);
+    }, 200);
+  }
 
-  var obs = new MutationObserver(function () {
-    boot();
-  });
+  if (document.readyState === "complete") bootWithRetry();
+  else window.addEventListener("load", bootWithRetry);
 
-  document.addEventListener("DOMContentLoaded", boot);
-  window.addEventListener("load", boot);
-
-  obs.observe(document.documentElement, { childList: true, subtree: true });
-
-  // safety: stop observing after 15s
-  setTimeout(function () {
-    try { obs.disconnect(); } catch (e) {}
-  }, 15000);
 })();
