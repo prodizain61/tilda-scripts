@@ -1,6 +1,6 @@
 (function () {
-  if (window.__mkAccHeightPushV1) return;
-  window.__mkAccHeightPushV1 = true;
+  if (window.__mkAccRealAccordionV2) return;
+  window.__mkAccRealAccordionV2 = true;
 
   function toArr(list){ return Array.prototype.slice.call(list || []); }
   function pad2(n){ var s = String(n || ""); return s.length >= 2 ? s : "0" + s; }
@@ -28,16 +28,15 @@
 
   function keyOf(el){ return el ? el.getAttribute("data-acc") : null; }
 
-  function getItemMetrics(item){
+  function getItemHeights(item){
     var title = item.querySelector(".mk-acc-title");
     var body = item.querySelector(".mk-acc-body");
-    if(!title) return { closedH: 122, openH: 122 };
 
-    var csItem = getComputedStyle(item);
-    var pt = parseFloat(csItem.paddingTop) || 0;
-    var pb = parseFloat(csItem.paddingBottom) || 0;
+    var cs = getComputedStyle(item);
+    var pt = parseFloat(cs.paddingTop) || 0;
+    var pb = parseFloat(cs.paddingBottom) || 0;
 
-    var titleH = title.getBoundingClientRect().height;
+    var titleH = title ? title.getBoundingClientRect().height : 0;
 
     var bodyMt = 0;
     var bodyH = 0;
@@ -49,51 +48,37 @@
     var closedH = Math.ceil(titleH + pt + pb);
     var openH = Math.ceil(titleH + bodyMt + bodyH + pt + pb);
 
-    // страховка, чтобы не было "слишком мало"
     if (closedH < 80) closedH = 80;
     if (openH < closedH) openH = closedH;
 
     return { closedH: closedH, openH: openH };
   }
 
-  function applyLayout(rec){
-    var items = toArr(rec.querySelectorAll(".mk-acc-item"));
+  function applyLayout(root){
+    var items = toArr(root.querySelectorAll(".mk-acc-item"));
     if(!items.length) return;
-
-    // актуальные размеры
-    var metrics = items.map(function(item){
-      var m = getItemMetrics(item);
-      return {
-        item: item,
-        closedH: m.closedH,
-        openH: m.openH
-      };
-    });
 
     var activeIndex = items.findIndex(function(i){ return i.classList.contains("is-active"); });
     if(activeIndex < 0) activeIndex = 0;
 
-    var delta = metrics[activeIndex].openH - metrics[activeIndex].closedH;
+    var heights = items.map(function(item){ return getItemHeights(item); });
+    var delta = heights[activeIndex].openH - heights[activeIndex].closedH;
 
-    // 1) высоты
-    metrics.forEach(function(m, idx){
-      var h = (idx === activeIndex) ? m.openH : m.closedH;
-      m.item.style.setProperty("--mk-h", h + "px");
-    });
+    items.forEach(function(item, idx){
+      var h = (idx === activeIndex) ? heights[idx].openH : heights[idx].closedH;
+      item.style.setProperty("--mk-h", h + "px");
 
-    // 2) раздвижение вниз (только те, что ниже активной)
-    metrics.forEach(function(m, idx){
       var shift = (idx > activeIndex) ? delta : 0;
-      m.item.style.setProperty("--mk-shift", shift + "px");
+      item.style.setProperty("--mk-shift", shift + "px");
     });
   }
 
-  function initOne(rec){
-    if(!rec || rec.__mkAccInited) return;
-    rec.__mkAccInited = true;
+  function initOne(root){
+    if(!root || root.__mkAccInited) return;
+    root.__mkAccInited = true;
 
-    var items = toArr(rec.querySelectorAll(".mk-acc-item"));
-    var media = toArr(rec.querySelectorAll(".mk-acc-media"));
+    var items = toArr(root.querySelectorAll(".mk-acc-item"));
+    var media = toArr(root.querySelectorAll(".mk-acc-media"));
     if(!items.length) return;
 
     function setActive(key){
@@ -111,7 +96,8 @@
       });
 
       setGlobalHeader(title, key);
-      requestAnimationFrame(function(){ applyLayout(rec); });
+
+      requestAnimationFrame(function(){ applyLayout(root); });
     }
 
     function closeToDefault(){
@@ -120,7 +106,6 @@
 
       items.forEach(function(i){ i.classList.remove("is-active"); });
 
-      // media default
       media.forEach(function(m){ m.classList.remove("is-active"); });
       var defMedia = media.find(function(m){ return keyOf(m) === k; }) || media[0];
       if(defMedia) defMedia.classList.add("is-active");
@@ -128,17 +113,15 @@
       var title = (first && first.getAttribute("data-title")) || "";
       setGlobalHeader(title, k);
 
-      requestAnimationFrame(function(){ applyLayout(rec); });
+      requestAnimationFrame(function(){ applyLayout(root); });
     }
 
-    // init default open first
     var defaultKey = keyOf(items[0]) || "1";
     setActive(defaultKey);
 
-    // click delegate
-    rec.addEventListener("click", function(e){
+    root.addEventListener("click", function(e){
       var item = e.target.closest(".mk-acc-item");
-      if(!item || !rec.contains(item)) return;
+      if(!item || !root.contains(item)) return;
 
       var key = keyOf(item);
       if(!key) return;
@@ -147,21 +130,20 @@
       else setActive(key);
     }, true);
 
-    // on resize recalc heights
     window.addEventListener("resize", function(){
-      applyLayout(rec);
+      applyLayout(root);
     });
   }
 
   function bootOnce(){
-    var recs = toArr(document.querySelectorAll("#rec1932878341, #rec850499661"));
-    if(!recs.length) return false;
-    recs.forEach(initOne);
+    var roots = toArr(document.querySelectorAll("#rec1932878341 .mk-acc, #rec850499661 .mk-acc"));
+    if(!roots.length) return false;
+    roots.forEach(initOne);
     return true;
   }
 
   function bootWithRetry(){
-    var tries = 0, maxTries = 120, delay = 150;
+    var tries = 0, maxTries = 140, delay = 150;
     var timer = setInterval(function(){
       tries += 1;
       var ok = bootOnce();
