@@ -1,92 +1,92 @@
 (function () {
-  if (window.__mkAccHardT396V1) return;
-  window.__mkAccHardT396V1 = true;
+  if (window.__mkAccStickyV1) return;
+  window.__mkAccStickyV1 = true;
 
-  function toArr(x){ return Array.prototype.slice.call(x || []); }
+  const REC_IDS = ["rec1932878341", "rec850499661"];
+  const EASE = "cubic-bezier(.16,1,.3,1)";
+
+  const toArr = (x) => Array.prototype.slice.call(x || []);
+  const px = (n) => Math.round(n) + "px";
+  const num = (v) => {
+    const n = parseFloat(v);
+    return Number.isFinite(n) ? n : 0;
+  };
+
   function pad2(n){ n = String(n || ""); return n.length >= 2 ? n : "0" + n; }
-  function px(n){ return Math.round(n) + "px"; }
-  function num(v){ var n = parseFloat(v); return isFinite(n) ? n : 0; }
+  function pickTextNode(el){ return (el && (el.querySelector(".tn-atom") || el)) || null; }
 
-  function pickTextNode(el){
-    if(!el) return null;
-    return el.querySelector(".tn-atom") || el;
-  }
   function getGlobalHeaderEls(){
-    var headingSrc = toArr(document.querySelectorAll(".mk-acc-heading, [data-mk-heading]"));
-    var chipSrc = toArr(document.querySelectorAll(".mk-acc-chip, [data-mk-chip]"));
+    const headingSrc = toArr(document.querySelectorAll(".mk-acc-heading, [data-mk-heading]"));
+    const chipSrc = toArr(document.querySelectorAll(".mk-acc-chip, [data-mk-chip]"));
     return {
       heading: headingSrc.map(pickTextNode).filter(Boolean),
       chip: chipSrc.map(pickTextNode).filter(Boolean)
     };
   }
+
   function setGlobalHeader(title, key){
-    var els = getGlobalHeaderEls();
-    els.heading.forEach(function(el){ el.textContent = title || ""; });
-    els.chip.forEach(function(el){ el.textContent = "(" + pad2(key) + ")"; });
+    const els = getGlobalHeaderEls();
+    els.heading.forEach((el) => el.textContent = title || "");
+    els.chip.forEach((el) => el.textContent = "(" + pad2(key) + ")");
+  }
+
+  function setImp(el, prop, value){
+    if (!el) return;
+    el.style.setProperty(prop, value, "important");
   }
 
   function keyOf(el){ return el ? el.getAttribute("data-acc") : null; }
-
   function getGroup(item){
     return item.closest(".t396__group") || item.closest(".tn-group") || item;
   }
 
+  function getBaseTop(group){
+    const inlineTop = group.style.top ? num(group.style.top) : 0;
+    if (inlineTop) return inlineTop;
+    const dataTop = num(group.getAttribute("data-group-top-value"));
+    if (dataTop) return dataTop;
+    return num(getComputedStyle(group).top);
+  }
+
   function setGroupHeight(group, h){
-    var H = Math.max(0, Math.round(h));
-    // Тильда часто читает из data-group-height-value
+    const H = Math.max(0, Math.round(h));
     group.setAttribute("data-group-height-value", String(H));
-    // и из inline style
-    group.style.height = px(H);
-    group.style.maxHeight = "none";
-    group.style.minHeight = "0";
-    // чтобы не ломало содержимое
-    group.style.overflow = "hidden";
-    group.style.willChange = "height, top";
-    // плавность
-    group.style.transition = "height .75s cubic-bezier(.16,1,.3,1), top .75s cubic-bezier(.16,1,.3,1)";
+    setImp(group, "height", px(H));
+    setImp(group, "min-height", "0px");
+    setImp(group, "max-height", "none");
+    setImp(group, "overflow", "hidden");
+    setImp(group, "will-change", "height, top");
+    setImp(group, "transition", "height .75s " + EASE + ", top .75s " + EASE);
   }
 
   function setGroupTop(group, topPx){
-    var T = Math.round(topPx);
+    const T = Math.round(topPx);
     group.setAttribute("data-group-top-value", String(T));
-    group.style.top = px(T);
-  }
-
-  function getBaseTop(group){
-    // берём приоритетно inline top, иначе data-group-top-value
-    var t = group.style.top ? num(group.style.top) : num(group.getAttribute("data-group-top-value"));
-    if(!t){
-      // fallback computed
-      t = num(getComputedStyle(group).top);
-    }
-    return t;
+    setImp(group, "top", px(T));
   }
 
   function getPaddings(item){
-    var cs = getComputedStyle(item);
-    return {
-      pt: num(cs.paddingTop),
-      pb: num(cs.paddingBottom)
-    };
+    const cs = getComputedStyle(item);
+    return { pt: num(cs.paddingTop), pb: num(cs.paddingBottom) };
   }
 
   function measureClosedH(item){
-    var title = item.querySelector(".mk-acc-title");
-    if(!title) return null;
-    var pad = getPaddings(item);
+    const title = item.querySelector(".mk-acc-title");
+    if (!title) return 0;
+    const pad = getPaddings(item);
     return Math.ceil(title.getBoundingClientRect().height + pad.pt + pad.pb);
   }
 
   function measureOpenH(item){
-    var title = item.querySelector(".mk-acc-title");
-    var body = item.querySelector(".mk-acc-body");
-    if(!title) return null;
+    const title = item.querySelector(".mk-acc-title");
+    const body = item.querySelector(".mk-acc-body");
+    if (!title) return 0;
 
-    var pad = getPaddings(item);
+    const pad = getPaddings(item);
+    let bodyH = 0;
+    let bodyMt = 0;
 
-    var bodyH = 0;
-    var bodyMt = 0;
-    if(body){
+    if (body){
       bodyH = body.scrollHeight;
       bodyMt = num(getComputedStyle(body).marginTop); // у тебя должно быть 20px
     }
@@ -95,33 +95,28 @@
   }
 
   function initRec(rec){
-    if(!rec || rec.__mkAccHardInited) return;
-    rec.__mkAccHardInited = true;
+    if (!rec || rec.__mkAccStickyInited) return;
+    rec.__mkAccStickyInited = true;
 
-    var items = toArr(rec.querySelectorAll(".mk-acc-item"));
-    var media = toArr(rec.querySelectorAll(".mk-acc-media"));
-    if(!items.length) return;
+    const items = toArr(rec.querySelectorAll(".mk-acc-item"));
+    const media = toArr(rec.querySelectorAll(".mk-acc-media"));
+    if (!items.length) return;
 
-    // карта: порядок DOM = порядок сверху вниз
-    var map = items.map(function(item){
-      var group = getGroup(item);
+    // Модель карточек
+    const map = items.map((item) => {
+      const group = getGroup(item);
       return {
-        item: item,
-        group: group,
+        item,
+        group,
         key: keyOf(item),
         baseTop: getBaseTop(group),
         closedH: 0,
-        openH: 0,
-        gap: 14 // твой margin-bottom визуальный; если у тебя другой - можно поменять
+        openH: 0
       };
-    });
-
-    // фиксируем базовые top один раз (чтобы не уплывали)
-    // и сортируем по baseTop (на всякий)
-    map.sort(function(a,b){ return a.baseTop - b.baseTop; });
+    }).sort((a,b) => a.baseTop - b.baseTop);
 
     function recalc(){
-      map.forEach(function(m){
+      map.forEach((m) => {
         m.closedH = measureClosedH(m.item) || m.closedH || 0;
         m.openH = measureOpenH(m.item) || m.openH || m.closedH || 0;
       });
@@ -130,112 +125,116 @@
     function applyLayout(){
       recalc();
 
-      var activeIndex = map.findIndex(function(m){ return m.item.classList.contains("is-active"); });
-      if(activeIndex < 0) activeIndex = 0;
+      let activeIndex = map.findIndex((m) => m.item.classList.contains("is-active"));
+      if (activeIndex < 0) activeIndex = 0;
 
-      // 1) выставляем высоты групп
-      map.forEach(function(m, idx){
-        var h = (idx === activeIndex) ? m.openH : m.closedH;
-        if(h > 0) setGroupHeight(m.group, h);
+      // высоты
+      map.forEach((m, idx) => {
+        const h = (idx === activeIndex) ? m.openH : m.closedH;
+        if (h) setGroupHeight(m.group, h);
       });
 
-      // 2) считаем новые top "лесенкой" от baseTop первого
-      var startTop = map[0].baseTop;
-      var currentTop = startTop;
+      // tops лесенкой
+      let curTop = map[0].baseTop;
+      map.forEach((m, idx) => {
+        setGroupTop(m.group, curTop);
 
-      map.forEach(function(m, idx){
-        setGroupTop(m.group, currentTop);
+        const h = (idx === activeIndex) ? m.openH : m.closedH;
+        let mb = num(getComputedStyle(m.item).marginBottom);
+        if (!mb) mb = 14;
 
-        var h = (idx === activeIndex) ? m.openH : m.closedH;
-
-        // расстояние между карточками - берём из реального margin-bottom item,
-        // иначе дефолт 14
-        var mb = num(getComputedStyle(m.item).marginBottom);
-        if(!mb) mb = m.gap;
-
-        currentTop += h + mb;
+        curTop += h + mb;
       });
     }
 
-    function setActive(key){
-      if(!key) return;
-
-      var activeItem = items.find(function(i){ return keyOf(i) === key; });
-      var title = activeItem ? (activeItem.getAttribute("data-title") || "") : "";
-
-      items.forEach(function(i){
-        i.classList.toggle("is-active", keyOf(i) === key);
+    // липкая поддержка: если Тильда перерисовала, мы вернем как надо
+    let raf = 0;
+    function schedule(){
+      if (raf) return;
+      raf = requestAnimationFrame(() => {
+        raf = 0;
+        applyLayout();
       });
-
-      media.forEach(function(m){
-        m.classList.toggle("is-active", keyOf(m) === key);
-      });
-
-      setGlobalHeader(title, key);
-
-      requestAnimationFrame(applyLayout);
     }
 
-    function closeToDefault(){
-      var first = items[0];
-      var k = keyOf(first) || "1";
+    // клики
+    rec.addEventListener("click", (e) => {
+      const item = e.target.closest(".mk-acc-item");
+      if (!item || !rec.contains(item)) return;
 
-      items.forEach(function(i){ i.classList.remove("is-active"); });
+      const k = keyOf(item);
+      if (!k) return;
 
-      // медиа: дефолт
-      media.forEach(function(m){ m.classList.remove("is-active"); });
-      var defMedia = media.find(function(m){ return keyOf(m) === k; }) || media[0];
-      if(defMedia) defMedia.classList.add("is-active");
+      if (item.classList.contains("is-active")){
+        // close to default
+        items.forEach((i) => i.classList.remove("is-active"));
 
-      var title = (first && first.getAttribute("data-title")) || "";
-      setGlobalHeader(title, k);
+        // дефолт: первое фото и тексты
+        const first = items[0];
+        const dk = keyOf(first) || "1";
 
-      requestAnimationFrame(applyLayout);
-    }
+        media.forEach((m) => m.classList.remove("is-active"));
+        const defMedia = media.find((m) => keyOf(m) === dk) || media[0];
+        if (defMedia) defMedia.classList.add("is-active");
 
-    // init
-    var defaultKey = keyOf(items[0]) || "1";
-    setActive(defaultKey);
+        setGlobalHeader(first.getAttribute("data-title") || "", dk);
+        schedule();
+        return;
+      }
 
-    rec.addEventListener("click", function(e){
-      var item = e.target.closest(".mk-acc-item");
-      if(!item || !rec.contains(item)) return;
+      items.forEach((i) => i.classList.toggle("is-active", keyOf(i) === k));
+      media.forEach((m) => m.classList.toggle("is-active", keyOf(m) === k));
 
-      var k = keyOf(item);
-      if(!k) return;
+      const activeItem = items.find((i) => keyOf(i) === k);
+      setGlobalHeader((activeItem && activeItem.getAttribute("data-title")) || "", k);
 
-      if(item.classList.contains("is-active")) closeToDefault();
-      else setActive(k);
+      schedule();
     }, true);
 
-    requestAnimationFrame(applyLayout);
+    // init first open
+    const first = items[0];
+    const dk = keyOf(first) || "1";
+    items.forEach((i) => i.classList.toggle("is-active", keyOf(i) === dk));
+    schedule();
 
-    window.addEventListener("resize", function(){
-      // при ресайзе переснимаем базовые top заново (Тильда может пересчитать)
-      map.forEach(function(m){
-        m.baseTop = getBaseTop(m.group);
-      });
-      map.sort(function(a,b){ return a.baseTop - b.baseTop; });
-      requestAnimationFrame(applyLayout);
+    // наблюдаем любые изменения от Тильды и возвращаем наши размеры
+    const obs = new MutationObserver(schedule);
+    obs.observe(rec, { attributes: true, subtree: true, attributeFilter: ["style", "data-group-height-value", "data-group-top-value"] });
+
+    window.addEventListener("resize", () => {
+      map.forEach((m) => m.baseTop = getBaseTop(m.group));
+      map.sort((a,b) => a.baseTop - b.baseTop);
+      schedule();
     });
+
+    // подстраховка: первые 3 секунды часто идут пересчеты t396
+    let t = 0;
+    const timer = setInterval(() => {
+      t += 1;
+      schedule();
+      if (t >= 20) clearInterval(timer);
+    }, 150);
   }
 
-  function bootOnce(){
-    var recs = toArr(document.querySelectorAll("#rec850499661, #rec1932878341"));
-    if(!recs.length) return false;
-    recs.forEach(initRec);
-    return true;
+  function boot(){
+    let ok = false;
+    REC_IDS.forEach((id) => {
+      const rec = document.getElementById(id);
+      if (rec) { initRec(rec); ok = true; }
+    });
+    return ok;
   }
 
-  function bootWithRetry(){
-    var tries = 0, maxTries = 140, delay = 150;
-    var timer = setInterval(function(){
+  function bootRetry(){
+    let tries = 0;
+    const max = 140;
+    const timer = setInterval(() => {
       tries += 1;
-      var ok = bootOnce();
-      if(ok || tries >= maxTries) clearInterval(timer);
-    }, delay);
+      const ok = boot();
+      if (ok || tries >= max) clearInterval(timer);
+    }, 150);
   }
 
-  if (document.readyState === "complete") bootWithRetry();
-  else window.addEventListener("load", bootWithRetry);
+  if (document.readyState === "complete") bootRetry();
+  else window.addEventListener("load", bootRetry);
 })();
