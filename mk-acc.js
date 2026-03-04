@@ -1,14 +1,18 @@
 (function () {
-  if (window.__mkAccRealAccordionV2) return;
-  window.__mkAccRealAccordionV2 = true;
+  if (window.__mkZeroAccV3) return;
+  window.__mkZeroAccV3 = true;
+
+  var REC_IDS = ["rec1932878341", "rec850499661"];
+  var GAP = 14;         // расстояние между карточками
+  var BODY_GAP = 20;    // body на 20px ниже заголовка
 
   function toArr(list){ return Array.prototype.slice.call(list || []); }
-  function pad2(n){ var s = String(n || ""); return s.length >= 2 ? s : "0" + s; }
+  function num(v){ var n = parseFloat(v); return isFinite(n) ? n : 0; }
+  function px(n){ return Math.round(n) + "px"; }
+  function keyOf(el){ return el ? el.getAttribute("data-acc") : null; }
 
-  function pickTextNode(el){
-    if(!el) return null;
-    return el.querySelector(".tn-atom") || el;
-  }
+  function pad2(n){ n = String(n || ""); return n.length >= 2 ? n : "0" + n; }
+  function pickTextNode(el){ return (el && (el.querySelector(".tn-atom") || el)) || null; }
 
   function getGlobalHeaderEls(){
     var headingSrc = toArr(document.querySelectorAll(".mk-acc-heading, [data-mk-heading]"));
@@ -21,64 +25,94 @@
 
   function setGlobalHeader(title, key){
     var els = getGlobalHeaderEls();
-    var chipText = "(" + pad2(key) + ")";
     els.heading.forEach(function(el){ el.textContent = title || ""; });
-    els.chip.forEach(function(el){ el.textContent = chipText; });
+    els.chip.forEach(function(el){ el.textContent = "(" + pad2(key) + ")"; });
   }
 
-  function keyOf(el){ return el ? el.getAttribute("data-acc") : null; }
+  function setImp(el, prop, value){
+    if(!el) return;
+    el.style.setProperty(prop, value, "important");
+  }
 
-  function getItemHeights(item){
-    var title = item.querySelector(".mk-acc-title");
-    var body = item.querySelector(".mk-acc-body");
+  function measureHeights(item){
+    var titleEl = item.querySelector(".mk-acc-title");
+    var bodyEl = item.querySelector(".mk-acc-body");
 
-    var cs = getComputedStyle(item);
-    var pt = parseFloat(cs.paddingTop) || 0;
-    var pb = parseFloat(cs.paddingBottom) || 0;
+    var csItem = getComputedStyle(item);
+    var pt = num(csItem.paddingTop);
+    var pb = num(csItem.paddingBottom);
 
-    var titleH = title ? title.getBoundingClientRect().height : 0;
+    var titleH = titleEl ? titleEl.getBoundingClientRect().height : 0;
 
-    var bodyMt = 0;
     var bodyH = 0;
-    if(body){
-      bodyMt = parseFloat(getComputedStyle(body).marginTop) || 0; // должно быть 20
-      bodyH = body.scrollHeight || 0;
+    if(bodyEl){
+      bodyH = bodyEl.scrollHeight || 0;
     }
 
+    // закрыто: только заголовок + паддинги
     var closedH = Math.ceil(titleH + pt + pb);
-    var openH = Math.ceil(titleH + bodyMt + bodyH + pt + pb);
 
+    // открыто: заголовок + 20px + body + паддинги
+    var openH = Math.ceil(titleH + BODY_GAP + bodyH + pt + pb);
+
+    // страховки
     if (closedH < 80) closedH = 80;
     if (openH < closedH) openH = closedH;
 
     return { closedH: closedH, openH: openH };
   }
 
-  function applyLayout(root){
-    var items = toArr(root.querySelectorAll(".mk-acc-item"));
+  function readBaseTop(group){
+    // реальный top, который t396 выставила
+    if (group.style.top) return num(group.style.top);
+    var d = num(group.getAttribute("data-group-top-value"));
+    if (d) return d;
+    return num(getComputedStyle(group).top);
+  }
+
+  function forceLayout(rec){
+    var items = toArr(rec.querySelectorAll(".mk-acc-item"));
     if(!items.length) return;
 
-    var activeIndex = items.findIndex(function(i){ return i.classList.contains("is-active"); });
+    // строим модель и сортируем по текущему top
+    var model = items.map(function(item){
+      return {
+        item: item,
+        key: keyOf(item),
+        baseTop: readBaseTop(item),
+        h: measureHeights(item)
+      };
+    }).sort(function(a,b){ return a.baseTop - b.baseTop; });
+
+    // кто активный
+    var activeIndex = model.findIndex(function(m){ return m.item.classList.contains("is-active"); });
     if(activeIndex < 0) activeIndex = 0;
 
-    var heights = items.map(function(item){ return getItemHeights(item); });
-    var delta = heights[activeIndex].openH - heights[activeIndex].closedH;
+    // пересчитываем лесенку top
+    var top = model[0].baseTop;
 
-    items.forEach(function(item, idx){
-      var h = (idx === activeIndex) ? heights[idx].openH : heights[idx].closedH;
-      item.style.setProperty("--mk-h", h + "px");
+    model.forEach(function(m, idx){
+      var targetH = (idx === activeIndex) ? m.h.openH : m.h.closedH;
 
-      var shift = (idx > activeIndex) ? delta : 0;
-      item.style.setProperty("--mk-shift", shift + "px");
+      // обновляем data-значения, чтобы t396 меньше “откатывала”
+      m.item.setAttribute("data-group-height-value", String(Math.round(targetH)));
+      m.item.setAttribute("data-group-top-value", String(Math.round(top)));
+
+      // принудительно держим
+      setImp(m.item, "height", px(targetH));
+      setImp(m.item, "top", px(top));
+      setImp(m.item, "overflow", "hidden");
+
+      top += targetH + GAP;
     });
   }
 
-  function initOne(root){
-    if(!root || root.__mkAccInited) return;
-    root.__mkAccInited = true;
+  function initRec(rec){
+    if(!rec || rec.__mkInited) return;
+    rec.__mkInited = true;
 
-    var items = toArr(root.querySelectorAll(".mk-acc-item"));
-    var media = toArr(root.querySelectorAll(".mk-acc-media"));
+    var items = toArr(rec.querySelectorAll(".mk-acc-item"));
+    var media = toArr(rec.querySelectorAll(".mk-acc-media"));
     if(!items.length) return;
 
     function setActive(key){
@@ -91,13 +125,13 @@
         i.classList.toggle("is-active", keyOf(i) === key);
       });
 
+      // media sync
       media.forEach(function(m){
         m.classList.toggle("is-active", keyOf(m) === key);
       });
 
       setGlobalHeader(title, key);
-
-      requestAnimationFrame(function(){ applyLayout(root); });
+      requestAnimationFrame(function(){ forceLayout(rec); });
     }
 
     function closeToDefault(){
@@ -110,18 +144,17 @@
       var defMedia = media.find(function(m){ return keyOf(m) === k; }) || media[0];
       if(defMedia) defMedia.classList.add("is-active");
 
-      var title = (first && first.getAttribute("data-title")) || "";
-      setGlobalHeader(title, k);
-
-      requestAnimationFrame(function(){ applyLayout(root); });
+      setGlobalHeader((first && first.getAttribute("data-title")) || "", k);
+      requestAnimationFrame(function(){ forceLayout(rec); });
     }
 
+    // init first
     var defaultKey = keyOf(items[0]) || "1";
     setActive(defaultKey);
 
-    root.addEventListener("click", function(e){
+    rec.addEventListener("click", function(e){
       var item = e.target.closest(".mk-acc-item");
-      if(!item || !root.contains(item)) return;
+      if(!item || !rec.contains(item)) return;
 
       var key = keyOf(item);
       if(!key) return;
@@ -130,27 +163,48 @@
       else setActive(key);
     }, true);
 
-    window.addEventListener("resize", function(){
-      applyLayout(root);
+    // ВАЖНО: t396 часто перерасчитывает после клика, ресайза, прокрутки.
+    // Мы “держим” лэйаут некоторое время после событий.
+    var holdTimer = 0;
+    function hold(){
+      var t = 0;
+      clearInterval(holdTimer);
+      holdTimer = setInterval(function(){
+        t += 1;
+        forceLayout(rec);
+        if (t >= 20) clearInterval(holdTimer); // ~3 секунды
+      }, 150);
+    }
+
+    window.addEventListener("resize", hold);
+    window.addEventListener("scroll", function(){
+      // редко, но у некоторых блоков пересчет идет от скролла
+      hold();
+    }, { passive: true });
+
+    // стартовая подстраховка
+    hold();
+  }
+
+  function boot(){
+    var ok = false;
+    REC_IDS.forEach(function(id){
+      var rec = document.getElementById(id);
+      if (rec){ initRec(rec); ok = true; }
     });
+    return ok;
   }
 
-  function bootOnce(){
-    var roots = toArr(document.querySelectorAll("#rec1932878341 .mk-acc, #rec850499661 .mk-acc"));
-    if(!roots.length) return false;
-    roots.forEach(initOne);
-    return true;
-  }
-
-  function bootWithRetry(){
-    var tries = 0, maxTries = 140, delay = 150;
+  function bootRetry(){
+    var tries = 0;
+    var max = 140;
     var timer = setInterval(function(){
       tries += 1;
-      var ok = bootOnce();
-      if(ok || tries >= maxTries) clearInterval(timer);
-    }, delay);
+      var ok = boot();
+      if (ok || tries >= max) clearInterval(timer);
+    }, 150);
   }
 
-  if (document.readyState === "complete") bootWithRetry();
-  else window.addEventListener("load", bootWithRetry);
+  if (document.readyState === "complete") bootRetry();
+  else window.addEventListener("load", bootRetry);
 })();
