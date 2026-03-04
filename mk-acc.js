@@ -1,16 +1,16 @@
 (function () {
-  if (window.__mkAccTildaGroupV1) return;
-  window.__mkAccTildaGroupV1 = true;
+  if (window.__mkAccHardT396V1) return;
+  window.__mkAccHardT396V1 = true;
 
   function toArr(x){ return Array.prototype.slice.call(x || []); }
   function pad2(n){ n = String(n || ""); return n.length >= 2 ? n : "0" + n; }
   function px(n){ return Math.round(n) + "px"; }
+  function num(v){ var n = parseFloat(v); return isFinite(n) ? n : 0; }
 
   function pickTextNode(el){
     if(!el) return null;
     return el.querySelector(".tn-atom") || el;
   }
-
   function getGlobalHeaderEls(){
     var headingSrc = toArr(document.querySelectorAll(".mk-acc-heading, [data-mk-heading]"));
     var chipSrc = toArr(document.querySelectorAll(".mk-acc-chip, [data-mk-chip]"));
@@ -19,30 +19,54 @@
       chip: chipSrc.map(pickTextNode).filter(Boolean)
     };
   }
-
   function setGlobalHeader(title, key){
     var els = getGlobalHeaderEls();
     els.heading.forEach(function(el){ el.textContent = title || ""; });
     els.chip.forEach(function(el){ el.textContent = "(" + pad2(key) + ")"; });
   }
 
-  function setImportant(el, prop, value){
-    if(!el) return;
-    el.style.setProperty(prop, value, "important");
-  }
-
   function keyOf(el){ return el ? el.getAttribute("data-acc") : null; }
 
-  function getWrapper(item){
-    // ВАЖНО: у тебя item сам является .t396__group, это и есть нужная оболочка
+  function getGroup(item){
     return item.closest(".t396__group") || item.closest(".tn-group") || item;
   }
 
+  function setGroupHeight(group, h){
+    var H = Math.max(0, Math.round(h));
+    // Тильда часто читает из data-group-height-value
+    group.setAttribute("data-group-height-value", String(H));
+    // и из inline style
+    group.style.height = px(H);
+    group.style.maxHeight = "none";
+    group.style.minHeight = "0";
+    // чтобы не ломало содержимое
+    group.style.overflow = "hidden";
+    group.style.willChange = "height, top";
+    // плавность
+    group.style.transition = "height .75s cubic-bezier(.16,1,.3,1), top .75s cubic-bezier(.16,1,.3,1)";
+  }
+
+  function setGroupTop(group, topPx){
+    var T = Math.round(topPx);
+    group.setAttribute("data-group-top-value", String(T));
+    group.style.top = px(T);
+  }
+
+  function getBaseTop(group){
+    // берём приоритетно inline top, иначе data-group-top-value
+    var t = group.style.top ? num(group.style.top) : num(group.getAttribute("data-group-top-value"));
+    if(!t){
+      // fallback computed
+      t = num(getComputedStyle(group).top);
+    }
+    return t;
+  }
+
   function getPaddings(item){
-    var cs = window.getComputedStyle(item);
+    var cs = getComputedStyle(item);
     return {
-      pt: parseFloat(cs.paddingTop) || 0,
-      pb: parseFloat(cs.paddingBottom) || 0
+      pt: num(cs.paddingTop),
+      pb: num(cs.paddingBottom)
     };
   }
 
@@ -64,51 +88,37 @@
     var bodyMt = 0;
     if(body){
       bodyH = body.scrollHeight;
-      bodyMt = parseFloat(window.getComputedStyle(body).marginTop) || 0; // у тебя должно быть 20px
+      bodyMt = num(getComputedStyle(body).marginTop); // у тебя должно быть 20px
     }
 
     return Math.ceil(title.getBoundingClientRect().height + bodyMt + bodyH + pad.pt + pad.pb);
   }
 
-  function prepareWrapper(wrap){
-    setImportant(wrap, "overflow", "hidden");
-    setImportant(wrap, "will-change", "height, transform");
-    setImportant(
-      wrap,
-      "transition",
-      "height .75s cubic-bezier(.16, 1, .3, 1), transform .75s cubic-bezier(.16, 1, .3, 1)"
-    );
-  }
-
-  function applyShift(wrap, baseTransform, shiftPx){
-    var base = baseTransform || "";
-    if(base === "none") base = "";
-    var t = (base ? base + " " : "") + "translateY(" + px(shiftPx) + ")";
-    setImportant(wrap, "transform", t);
-  }
-
   function initRec(rec){
-    if(!rec || rec.__mkAccGroupInited) return;
-    rec.__mkAccGroupInited = true;
+    if(!rec || rec.__mkAccHardInited) return;
+    rec.__mkAccHardInited = true;
 
-    // ВАЖНО: не ищем .mk-acc wrapper - работаем прямо внутри rec
     var items = toArr(rec.querySelectorAll(".mk-acc-item"));
     var media = toArr(rec.querySelectorAll(".mk-acc-media"));
     if(!items.length) return;
 
-    // карта элементов в порядке DOM (у тебя это порядок сверху вниз)
+    // карта: порядок DOM = порядок сверху вниз
     var map = items.map(function(item){
-      var wrap = getWrapper(item);
-      prepareWrapper(wrap);
+      var group = getGroup(item);
       return {
         item: item,
-        wrap: wrap,
+        group: group,
         key: keyOf(item),
-        baseTransform: window.getComputedStyle(wrap).transform || "",
+        baseTop: getBaseTop(group),
         closedH: 0,
-        openH: 0
+        openH: 0,
+        gap: 14 // твой margin-bottom визуальный; если у тебя другой - можно поменять
       };
     });
+
+    // фиксируем базовые top один раз (чтобы не уплывали)
+    // и сортируем по baseTop (на всякий)
+    map.sort(function(a,b){ return a.baseTop - b.baseTop; });
 
     function recalc(){
       map.forEach(function(m){
@@ -123,18 +133,27 @@
       var activeIndex = map.findIndex(function(m){ return m.item.classList.contains("is-active"); });
       if(activeIndex < 0) activeIndex = 0;
 
-      // 1) высоты
+      // 1) выставляем высоты групп
       map.forEach(function(m, idx){
         var h = (idx === activeIndex) ? m.openH : m.closedH;
-        if(h > 0) setImportant(m.wrap, "height", px(h));
+        if(h > 0) setGroupHeight(m.group, h);
       });
 
-      // 2) раздвижение вниз
-      var delta = (map[activeIndex].openH - map[activeIndex].closedH) || 0;
+      // 2) считаем новые top "лесенкой" от baseTop первого
+      var startTop = map[0].baseTop;
+      var currentTop = startTop;
 
       map.forEach(function(m, idx){
-        var shift = (idx > activeIndex) ? delta : 0;
-        applyShift(m.wrap, m.baseTransform, shift);
+        setGroupTop(m.group, currentTop);
+
+        var h = (idx === activeIndex) ? m.openH : m.closedH;
+
+        // расстояние между карточками - берём из реального margin-bottom item,
+        // иначе дефолт 14
+        var mb = num(getComputedStyle(m.item).marginBottom);
+        if(!mb) mb = m.gap;
+
+        currentTop += h + mb;
       });
     }
 
@@ -163,7 +182,7 @@
 
       items.forEach(function(i){ i.classList.remove("is-active"); });
 
-      // медиа оставляем дефолтным
+      // медиа: дефолт
       media.forEach(function(m){ m.classList.remove("is-active"); });
       var defMedia = media.find(function(m){ return keyOf(m) === k; }) || media[0];
       if(defMedia) defMedia.classList.add("is-active");
@@ -174,11 +193,10 @@
       requestAnimationFrame(applyLayout);
     }
 
-    // init: открыть первый
+    // init
     var defaultKey = keyOf(items[0]) || "1";
     setActive(defaultKey);
 
-    // click delegation
     rec.addEventListener("click", function(e){
       var item = e.target.closest(".mk-acc-item");
       if(!item || !rec.contains(item)) return;
@@ -193,10 +211,11 @@
     requestAnimationFrame(applyLayout);
 
     window.addEventListener("resize", function(){
-      // переснять baseTransform (Тильда может менять)
+      // при ресайзе переснимаем базовые top заново (Тильда может пересчитать)
       map.forEach(function(m){
-        m.baseTransform = window.getComputedStyle(m.wrap).transform || "";
+        m.baseTop = getBaseTop(m.group);
       });
+      map.sort(function(a,b){ return a.baseTop - b.baseTop; });
       requestAnimationFrame(applyLayout);
     });
   }
@@ -209,7 +228,7 @@
   }
 
   function bootWithRetry(){
-    var tries = 0, maxTries = 120, delay = 150;
+    var tries = 0, maxTries = 140, delay = 150;
     var timer = setInterval(function(){
       tries += 1;
       var ok = bootOnce();
@@ -217,6 +236,6 @@
     }, delay);
   }
 
-  if(document.readyState === "complete") bootWithRetry();
+  if (document.readyState === "complete") bootWithRetry();
   else window.addEventListener("load", bootWithRetry);
 })();
