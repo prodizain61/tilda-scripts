@@ -1,9 +1,10 @@
 (function () {
-  if (window.__mkAccPushV2) return;
-  window.__mkAccPushV2 = true;
+  if (window.__mkAccTildaGroupV1) return;
+  window.__mkAccTildaGroupV1 = true;
 
   function toArr(x){ return Array.prototype.slice.call(x || []); }
   function pad2(n){ n = String(n || ""); return n.length >= 2 ? n : "0" + n; }
+  function px(n){ return Math.round(n) + "px"; }
 
   function pickTextNode(el){
     if(!el) return null;
@@ -30,13 +31,11 @@
     el.style.setProperty(prop, value, "important");
   }
 
-  function px(n){ return Math.round(n) + "px"; }
-
   function keyOf(el){ return el ? el.getAttribute("data-acc") : null; }
 
   function getWrapper(item){
-    // где реально сидит размер/позиция
-    return item.closest(".t396__elem") || item.closest(".tn-elem") || item;
+    // ВАЖНО: у тебя item сам является .t396__group, это и есть нужная оболочка
+    return item.closest(".t396__group") || item.closest(".tn-group") || item;
   }
 
   function getPaddings(item){
@@ -65,41 +64,39 @@
     var bodyMt = 0;
     if(body){
       bodyH = body.scrollHeight;
-      bodyMt = parseFloat(window.getComputedStyle(body).marginTop) || 0; // у тебя 20px
+      bodyMt = parseFloat(window.getComputedStyle(body).marginTop) || 0; // у тебя должно быть 20px
     }
 
     return Math.ceil(title.getBoundingClientRect().height + bodyMt + bodyH + pad.pt + pad.pb);
   }
 
   function prepareWrapper(wrap){
-    // height анимируем, shift делаем через transform
     setImportant(wrap, "overflow", "hidden");
+    setImportant(wrap, "will-change", "height, transform");
     setImportant(
       wrap,
       "transition",
       "height .75s cubic-bezier(.16, 1, .3, 1), transform .75s cubic-bezier(.16, 1, .3, 1)"
     );
-    setImportant(wrap, "will-change", "height, transform");
   }
 
-  function applyTransformShift(m, shiftPx){
-    // сохраняем базовый transform и добавляем translateY
-    var base = m.baseTransform;
-    if(!base || base === "none") base = "";
-    // важно: добавляем translateY последним, чтобы “дожимало” вниз
+  function applyShift(wrap, baseTransform, shiftPx){
+    var base = baseTransform || "";
+    if(base === "none") base = "";
     var t = (base ? base + " " : "") + "translateY(" + px(shiftPx) + ")";
-    setImportant(m.wrap, "transform", t);
+    setImportant(wrap, "transform", t);
   }
 
-  function initOne(root){
-    if(!root || root.__mkAccInitedPushV2) return;
-    root.__mkAccInitedPushV2 = true;
+  function initRec(rec){
+    if(!rec || rec.__mkAccGroupInited) return;
+    rec.__mkAccGroupInited = true;
 
-    var items = toArr(root.querySelectorAll(".mk-acc-item"));
-    var media = toArr(root.querySelectorAll(".mk-acc-media"));
+    // ВАЖНО: не ищем .mk-acc wrapper - работаем прямо внутри rec
+    var items = toArr(rec.querySelectorAll(".mk-acc-item"));
+    var media = toArr(rec.querySelectorAll(".mk-acc-media"));
     if(!items.length) return;
 
-    // карта элементов в порядке как в DOM (обычно это верх->низ)
+    // карта элементов в порядке DOM (у тебя это порядок сверху вниз)
     var map = items.map(function(item){
       var wrap = getWrapper(item);
       prepareWrapper(wrap);
@@ -107,9 +104,9 @@
         item: item,
         wrap: wrap,
         key: keyOf(item),
+        baseTransform: window.getComputedStyle(wrap).transform || "",
         closedH: 0,
-        openH: 0,
-        baseTransform: window.getComputedStyle(wrap).transform || ""
+        openH: 0
       };
     });
 
@@ -132,12 +129,12 @@
         if(h > 0) setImportant(m.wrap, "height", px(h));
       });
 
-      // 2) сдвиг вниз для тех, кто ниже активного
+      // 2) раздвижение вниз
       var delta = (map[activeIndex].openH - map[activeIndex].closedH) || 0;
 
       map.forEach(function(m, idx){
         var shift = (idx > activeIndex) ? delta : 0;
-        applyTransformShift(m, shift);
+        applyShift(m.wrap, m.baseTransform, shift);
       });
     }
 
@@ -166,6 +163,7 @@
 
       items.forEach(function(i){ i.classList.remove("is-active"); });
 
+      // медиа оставляем дефолтным
       media.forEach(function(m){ m.classList.remove("is-active"); });
       var defMedia = media.find(function(m){ return keyOf(m) === k; }) || media[0];
       if(defMedia) defMedia.classList.add("is-active");
@@ -180,9 +178,10 @@
     var defaultKey = keyOf(items[0]) || "1";
     setActive(defaultKey);
 
-    root.addEventListener("click", function(e){
+    // click delegation
+    rec.addEventListener("click", function(e){
       var item = e.target.closest(".mk-acc-item");
-      if(!item || !root.contains(item)) return;
+      if(!item || !rec.contains(item)) return;
 
       var k = keyOf(item);
       if(!k) return;
@@ -191,10 +190,10 @@
       else setActive(k);
     }, true);
 
-    // первичный расчёт + ресайз
     requestAnimationFrame(applyLayout);
+
     window.addEventListener("resize", function(){
-      // на ресайзе базовый transform мог поменяться — обновим
+      // переснять baseTransform (Тильда может менять)
       map.forEach(function(m){
         m.baseTransform = window.getComputedStyle(m.wrap).transform || "";
       });
@@ -203,9 +202,9 @@
   }
 
   function bootOnce(){
-    var roots = toArr(document.querySelectorAll("#rec850499661 .mk-acc, #rec1932878341 .mk-acc"));
-    if(!roots.length) return false;
-    roots.forEach(initOne);
+    var recs = toArr(document.querySelectorAll("#rec850499661, #rec1932878341"));
+    if(!recs.length) return false;
+    recs.forEach(initRec);
     return true;
   }
 
