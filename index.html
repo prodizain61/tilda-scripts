@@ -1,0 +1,1866 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<meta name="theme-color" content="#f1ede4" />
+<title>Мой крой — швейная фабрика мерча для брендов</title>
+<meta name="description" content="Мой крой — швейная фабрика полного цикла. Шьём мерч для компаний, брендов и мероприятий: футболки, худи, лонгсливы. Тиражи от 30 до 30 000." />
+
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Unbounded:wght@300;400;600;800;900&family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+
+<style>
+/* ───────────────────────────  TOKENS  ─────────────────────────── */
+:root{
+  --bg:        #f1ede4;          /* тёплая бумага */
+  --bg-2:      #ffffff;          /* карточки */
+  --ink:       #0a0a0a;
+  --ink-dim:   #6a6a70;
+  --line:      #e0d9cb;
+  --line-2:    #cfc6b3;
+
+  --violet:    #6b2bff;
+  --violet-2:  #8a4bff;
+  --pink:      #ff3da5;
+  --pink-2:    #ff6fc1;
+  --acid:      #c8ff2b;
+  --acid-2:    #b6ff3c;
+  --black:     #0a0a0a;
+
+  --ease:      cubic-bezier(.22,.61,.36,1);
+  --ease-out:  cubic-bezier(.16,1,.3,1);
+  --ease-pop:  cubic-bezier(.34,1.56,.64,1);
+
+  --pad:       clamp(20px, 4vw, 56px);
+  --radius:    20px;
+  --radius-lg: 32px;
+  --radius-xl: 48px;
+
+  --display:   "Unbounded", "Inter", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --sans:      "Inter", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --mono:      "JetBrains Mono", ui-monospace, Menlo, monospace;
+}
+
+*, *::before, *::after { box-sizing: border-box; }
+html, body { margin:0; padding:0; }
+html { scroll-behavior: smooth; -webkit-text-size-adjust: 100%; }
+body{
+  background: var(--bg);
+  color: var(--ink);
+  font-family: var(--sans);
+  font-size: 16px;
+  line-height: 1.55;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+  overflow-x: hidden;
+}
+img, svg { display:block; max-width:100%; }
+a { color: inherit; text-decoration: none; }
+button { font: inherit; color: inherit; background: none; border: 0; cursor: pointer; }
+::selection { background: var(--acid); color: #000; }
+
+/* лёгкая «бумажная» текстура */
+body::before{
+  content:"";
+  position: fixed; inset:0; pointer-events:none; z-index: 1000;
+  opacity:.06; mix-blend-mode: multiply;
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='220' height='220'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2' stitchTiles='stitch'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>");
+}
+
+/* ───────────────────────────  HELPERS  ─────────────────────────── */
+.container { padding-inline: var(--pad); }
+.eyebrow{
+  display:inline-flex; align-items:center; gap:10px;
+  font-family: var(--mono); font-size: 12px;
+  letter-spacing: .12em; text-transform: uppercase;
+  color: var(--ink);
+  padding: 8px 14px;
+  background: var(--bg-2);
+  border: 1px solid var(--line);
+  border-radius: 999px;
+}
+.eyebrow .pulse{
+  width:8px; height:8px; border-radius:50%; background: var(--violet);
+  box-shadow: 0 0 0 0 rgba(107,43,255,.6);
+  animation: pulse 1.8s var(--ease) infinite;
+}
+@keyframes pulse{
+  0%{ box-shadow: 0 0 0 0 rgba(107,43,255,.5); }
+  70%{ box-shadow: 0 0 0 14px rgba(107,43,255,0); }
+  100%{ box-shadow: 0 0 0 0 rgba(107,43,255,0); }
+}
+
+/* ───────────────────────────  PHOTO SLOTS  ─────────────────────────── */
+.photo{
+  position: relative;
+  overflow: hidden;
+  background:
+    radial-gradient(60% 60% at 20% 20%, rgba(107,43,255,.12), transparent 60%),
+    radial-gradient(60% 60% at 80% 80%, rgba(255,61,165,.10), transparent 60%),
+    linear-gradient(135deg, #efe9dc 0%, #e2d9c5 100%);
+  border-radius: inherit;
+  isolation: isolate;
+}
+.photo::before{
+  content: attr(data-kind);
+  position:absolute; left: 16px; top: 16px;
+  font-family: var(--mono); font-size: 10px;
+  letter-spacing: .12em; text-transform: uppercase;
+  color: var(--ink);
+  padding: 6px 10px; border-radius: 999px;
+  background: rgba(255,255,255,.8);
+  border: 1px solid var(--line);
+  backdrop-filter: blur(8px);
+  z-index: 2;
+  transition: opacity .3s;
+}
+.photo::after{
+  content: "📷 " attr(data-label);
+  position:absolute; right: 16px; bottom: 16px;
+  font-family: var(--mono); font-size: 10px;
+  color: rgba(10,10,10,.55);
+  padding: 6px 10px; border-radius: 999px;
+  background: rgba(255,255,255,.7);
+  border: 1px dashed rgba(10,10,10,.2);
+  z-index: 2;
+  transition: opacity .3s;
+}
+.photo > img{
+  position: absolute; inset: 0;
+  width: 100%; height: 100%;
+  object-fit: cover;
+  opacity: 0;
+  transform: scale(1.04);
+  transition: opacity .7s var(--ease), transform 1.2s var(--ease-out);
+  z-index: 1;
+}
+.photo.loaded > img{ opacity: 1; transform: scale(1); }
+.photo.loaded::before,
+.photo.loaded::after{ opacity: 0; pointer-events:none; }
+
+.photo .stamp{
+  position:absolute; inset:0; display:grid; place-items:center;
+  font-family: var(--display); font-weight: 900;
+  font-size: clamp(40px, 6vw, 90px);
+  letter-spacing: -.04em;
+  color: rgba(10,10,10,.05);
+  z-index: 1; pointer-events:none;
+}
+
+.photo.dark{
+  background:
+    radial-gradient(60% 60% at 20% 20%, rgba(107,43,255,.28), transparent 60%),
+    linear-gradient(135deg, #16161c 0%, #0d0d11 100%);
+}
+.photo.dark::before{ color: #fff; background: rgba(20,20,24,.7); border-color: rgba(255,255,255,.15); }
+.photo.dark::after{ color: rgba(255,255,255,.6); background: rgba(20,20,24,.7); border-color: rgba(255,255,255,.2); }
+.photo.dark .stamp{ color: rgba(255,255,255,.07); }
+
+/* ───────────────────────────  NAV  ─────────────────────────── */
+.nav{
+  position: fixed; inset: 16px var(--pad) auto; top: 16px;
+  z-index: 90;
+  display:flex; align-items:center; justify-content: space-between;
+  padding: 10px 12px 10px 22px;
+  background: rgba(255,255,255,.85);
+  backdrop-filter: blur(18px) saturate(140%);
+  -webkit-backdrop-filter: blur(18px) saturate(140%);
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  transition: transform .5s var(--ease), opacity .35s var(--ease);
+  box-shadow: 0 12px 40px -20px rgba(10,10,10,.25);
+}
+.nav.hide { transform: translateY(-140%); opacity:0; }
+
+.nav .brand{
+  display:flex; align-items:center; gap:12px;
+  font-family: var(--display); font-weight: 800;
+  letter-spacing: -.01em; font-size: 17px;
+}
+.brand-mark{
+  width: 30px; height: 30px; border-radius: 10px;
+  background: conic-gradient(from 180deg at 50% 50%, var(--violet), var(--pink), var(--acid), var(--violet));
+  position: relative;
+  animation: spin 14s linear infinite;
+}
+.brand-mark::after{
+  content:""; position:absolute; inset:7px; border-radius:5px; background: var(--bg-2);
+}
+
+.nav-links{ display:flex; gap: 4px; padding: 4px; }
+.nav-links a{
+  padding: 8px 14px; font-size: 13px; letter-spacing: .02em;
+  color: var(--ink); border-radius: 999px; transition: color .25s, background .25s;
+}
+.nav-links a:hover{ background: var(--bg); }
+
+.nav-cta{
+  display:inline-flex; align-items:center; gap:10px;
+  background: var(--black); color: var(--bg-2);
+  padding: 12px 18px; border-radius: 999px;
+  font-weight: 600; font-size: 13px;
+  transition: transform .25s var(--ease), background .25s, color .25s;
+}
+.nav-cta:hover{ background: var(--acid); color: var(--black); transform: translateY(-1px); }
+.nav-cta .dot{ width:8px; height:8px; border-radius:50%; background: var(--acid); }
+.nav-cta:hover .dot{ background: var(--black); }
+
+@media (max-width: 820px){ .nav-links{ display:none; } }
+
+/* ───────────────────────────  HERO  ─────────────────────────── */
+.hero{
+  position: relative;
+  min-height: 100vh; min-height: 100svh;
+  padding: 120px var(--pad) 60px;
+  overflow: hidden;
+  isolation: isolate;
+}
+.hero-grid{
+  display:grid;
+  grid-template-columns: repeat(12, 1fr);
+  gap: 24px;
+  align-items: end;
+  min-height: calc(100vh - 180px);
+  min-height: calc(100svh - 180px);
+  position: relative; z-index: 2;
+}
+
+/* fluffy background shapes — parallax */
+.blob{ position:absolute; pointer-events:none; will-change: transform; z-index: 0; }
+.blob-violet{
+  top: 8%; left: -8%;
+  width: 38vw; max-width: 520px; aspect-ratio: 1/1;
+  background: radial-gradient(circle at 35% 35%, var(--violet-2), var(--violet) 55%, transparent 72%);
+  filter: blur(60px); opacity: .35;
+}
+.blob-pink{
+  top: 38%; right: -10%;
+  width: 42vw; max-width: 560px; aspect-ratio: 1/1;
+  background: radial-gradient(circle at 55% 45%, var(--pink-2), var(--pink) 55%, transparent 72%);
+  filter: blur(70px); opacity: .28;
+}
+.blob-acid{
+  bottom: -14%; left: 24%;
+  width: 36vw; max-width: 480px; aspect-ratio: 1/1;
+  background: radial-gradient(circle at 50% 50%, var(--acid-2), var(--acid) 50%, transparent 72%);
+  filter: blur(60px); opacity: .30;
+}
+
+/* big rotating asterisk decoration */
+.deco-aster{
+  position:absolute; top: 14%; right: 9%;
+  width: clamp(80px, 9vw, 140px); height: clamp(80px, 9vw, 140px);
+  color: var(--violet);
+  z-index: 1; pointer-events:none;
+  animation: spin 22s linear infinite;
+}
+.deco-star{
+  position:absolute; left: 6%; bottom: 28%;
+  width: 64px; height: 64px;
+  color: var(--pink);
+  z-index: 1; pointer-events:none;
+  animation: spin 18s linear infinite reverse;
+}
+.deco-plus{
+  position:absolute; right: 18%; bottom: 18%;
+  width: 38px; height: 38px;
+  color: var(--ink);
+  z-index: 1; pointer-events:none;
+  animation: spin 12s linear infinite;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+
+.hero-top{
+  grid-column: 1 / span 12;
+  display:flex; justify-content: space-between; align-items:center;
+  margin-bottom: 8vh;
+}
+
+.hero h1{
+  grid-column: 1 / span 12;
+  margin: 0;
+  font-family: var(--display);
+  font-weight: 800;
+  font-size: clamp(56px, 13vw, 200px);
+  line-height: .88;
+  letter-spacing: -.045em;
+}
+.hero h1 .row{ display:block; overflow: hidden; }
+.hero h1 .row .ch{
+  display: inline-block;
+  transform: translateY(110%);
+  opacity: 0;
+  transition: transform 1.1s var(--ease-out), opacity .6s linear;
+}
+.hero h1.in .row .ch{ transform: translateY(0); opacity: 1; }
+
+.hero h1 .pad-l { padding-left: 8vw; }
+.hero h1 .outline{ -webkit-text-stroke: 1.5px var(--ink); color: transparent; }
+.hero h1 .accent-pink{ color: var(--pink); }
+.hero h1 .accent-acid{ color: #8aac15; }
+.hero h1 .accent-violet{ color: var(--violet); }
+
+/* hero illustration in title flow */
+.hero-shirt{
+  display: inline-block;
+  width: clamp(80px, 11vw, 180px);
+  height: clamp(80px, 11vw, 180px);
+  vertical-align: -22%;
+  margin: 0 .05em;
+  color: var(--violet);
+  transition: transform 1.2s var(--ease-pop);
+  transform: rotate(-8deg);
+}
+.hero h1.in .hero-shirt{ transform: rotate(0deg); }
+
+.hero-bottom{
+  grid-column: 1 / span 12;
+  margin-top: 5vh;
+  display:grid;
+  grid-template-columns: repeat(12, 1fr);
+  gap: 24px; align-items:end;
+}
+
+.hero-meta{
+  grid-column: 1 / span 5;
+  color: var(--ink);
+  font-size: 16px;
+  max-width: 480px;
+  opacity: 0; transform: translateY(20px);
+  transition: opacity 1s var(--ease-out) .5s, transform 1s var(--ease-out) .5s;
+}
+.hero.in .hero-meta{ opacity:1; transform: translateY(0); }
+.hero-meta strong{ font-weight: 600; }
+
+.hero-cta{
+  grid-column: 7 / span 6;
+  display:flex; gap:12px; flex-wrap:wrap; justify-content:flex-end;
+  opacity: 0; transform: translateY(20px);
+  transition: opacity 1s var(--ease-out) .65s, transform 1s var(--ease-out) .65s;
+}
+.hero.in .hero-cta{ opacity:1; transform: translateY(0); }
+
+/* magnetic button base */
+.btn{
+  display:inline-flex; align-items:center; gap:14px;
+  padding: 20px 28px;
+  border-radius: 999px;
+  font-weight: 600; font-size: 14px;
+  transition: transform .25s var(--ease), background .25s, color .25s, border-color .25s, box-shadow .3s;
+  border: 1px solid transparent;
+  position: relative; overflow: hidden;
+  will-change: transform;
+}
+.btn .arrow{
+  width: 32px; height: 32px; border-radius: 50%;
+  background: currentColor;
+  display:grid; place-items:center;
+  transition: transform .45s var(--ease-pop);
+}
+.btn .arrow svg{ stroke: var(--bg-2); }
+.btn:hover .arrow{ transform: rotate(-45deg) scale(1.1); }
+
+.btn-primary{ background: var(--black); color: var(--bg-2); box-shadow: 0 14px 30px -10px rgba(10,10,10,.4); }
+.btn-primary:hover{ background: var(--violet); }
+.btn-primary .arrow{ background: var(--acid); }
+.btn-primary .arrow svg{ stroke: var(--black); }
+
+.btn-ghost{ color: var(--ink); border-color: var(--ink); }
+.btn-ghost:hover{ background: var(--ink); color: var(--bg); }
+
+.sticker{
+  width: 142px; height: 142px;
+  display:grid; place-items:center;
+  border-radius: 50%;
+  background: var(--acid); color:#0a0a0a;
+  transform: rotate(-10deg);
+  font-family: var(--display);
+  font-weight: 800; font-size: 13px;
+  text-align:center; line-height: 1.15;
+  position: relative;
+  flex-shrink: 0;
+  box-shadow: 0 28px 60px -20px rgba(200,255,43,.6);
+  animation: float 6s var(--ease) infinite;
+}
+.sticker svg.ring{ position:absolute; inset:0; animation: spin 16s linear infinite; }
+.sticker .core{ display:block; padding: 6px 0; z-index: 1; }
+@keyframes float{
+  0%,100% { transform: rotate(-10deg) translateY(0); }
+  50%     { transform: rotate(-6deg)  translateY(-12px); }
+}
+
+@media (max-width: 900px){
+  .hero h1 .pad-l{ padding-left: 0; }
+  .hero-meta, .hero-cta{ grid-column: 1 / -1; }
+  .hero-cta{ justify-content: flex-start; margin-top: 8px; }
+  .deco-aster{ width: 64px; height: 64px; right: 4%; }
+  .deco-star{ width: 44px; height: 44px; }
+}
+
+/* ───────────────────────────  TICKER  ─────────────────────────── */
+.ticker{
+  position: relative;
+  background: var(--black); color: var(--bg);
+  overflow: hidden;
+  padding: 28px 0;
+  border-top: 1px solid var(--black);
+  border-bottom: 1px solid var(--black);
+}
+.ticker-track{
+  display: flex; gap: 56px; width: max-content;
+  animation: scroll 38s linear infinite;
+}
+.ticker-track span{
+  font-family: var(--display);
+  font-weight: 700;
+  font-size: clamp(28px, 5vw, 72px);
+  letter-spacing: -.025em;
+  display:inline-flex; align-items:center; gap: 56px;
+  white-space: nowrap;
+}
+.ticker-track .dot{ width: 18px; height: 18px; border-radius:50%; background: var(--pink); display:inline-block; }
+.ticker-track .dot.acid{ background: var(--acid); }
+.ticker-track .dot.violet{ background: var(--violet); }
+.ticker-track .stroke{ -webkit-text-stroke: 1.4px var(--bg); color: transparent; }
+@keyframes scroll{ from { transform: translateX(0); } to { transform: translateX(-50%); } }
+
+/* ───────────────────────────  STATS  ─────────────────────────── */
+.stats{
+  display:grid; grid-template-columns: repeat(12, 1fr);
+  gap: 14px;
+  padding: clamp(60px, 10vw, 120px) var(--pad);
+}
+.stat{
+  grid-column: span 3;
+  padding: 32px 28px 28px;
+  border-radius: var(--radius-lg);
+  background: var(--bg-2);
+  border: 1px solid var(--line);
+  display:flex; flex-direction: column; gap: 12px;
+  position: relative; overflow: hidden;
+  transition: transform .5s var(--ease);
+}
+.stat:hover{ transform: translateY(-6px); }
+.stat .icon{ width: 44px; height: 44px; color: var(--ink); }
+.stat .v{
+  font-family: var(--display); font-weight: 800;
+  font-size: clamp(40px, 5.6vw, 84px);
+  letter-spacing: -.04em; line-height: 1;
+}
+.stat .v.acid{ color: #8aac15; }
+.stat .v.pink{ color: var(--pink); }
+.stat .v.violet{ color: var(--violet); }
+.stat .l{ font-size: 13px; color: var(--ink-dim); }
+@media (max-width: 820px){ .stat{ grid-column: span 6; } }
+
+/* ───────────────────────────  SECTION CHROME  ─────────────────────────── */
+section{ position: relative; padding: clamp(80px, 12vw, 160px) var(--pad); }
+.section-head{
+  display:grid; grid-template-columns: repeat(12, 1fr);
+  gap: 24px; align-items: end;
+  margin-bottom: 64px;
+  position: relative;
+}
+.section-tag{
+  grid-column: 1 / span 5;
+}
+.section-title{
+  grid-column: 1 / span 12;
+  font-family: var(--display);
+  font-weight: 800;
+  font-size: clamp(40px, 7.5vw, 120px);
+  line-height: .92;
+  letter-spacing: -.04em;
+  margin: 18px 0 0;
+}
+.section-title .accent{ color: var(--pink); }
+.section-title .violet{ color: var(--violet); }
+.section-title .acid{ color: #8aac15; }
+.section-title .outline{ -webkit-text-stroke: 1.2px var(--ink); color: transparent; }
+.section-title .icon-inline{
+  display:inline-block;
+  width: clamp(44px, 6vw, 90px); height: clamp(44px, 6vw, 90px);
+  vertical-align: -16%; margin: 0 .04em;
+}
+
+/* ───────────────────────────  WHAT (Bento) ─────────────────────────── */
+.bento{
+  display:grid; grid-template-columns: repeat(12, 1fr);
+  gap: 16px;
+}
+.bento-card{
+  position: relative;
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+  padding: 36px;
+  isolation: isolate;
+  transition: transform .5s var(--ease), box-shadow .5s var(--ease);
+  display:flex; flex-direction: column; justify-content: space-between;
+  min-height: 380px;
+  cursor: pointer;
+}
+.bento-card:hover{ transform: translateY(-6px); }
+
+.bento-card .b-num{
+  font-family: var(--mono); font-size: 11px;
+  letter-spacing: .12em; text-transform: uppercase; opacity: .7;
+}
+.bento-card h3{
+  font-family: var(--display); font-weight: 800;
+  font-size: clamp(28px, 3.6vw, 56px);
+  line-height: .96; letter-spacing: -.03em;
+  margin: 14px 0 0;
+}
+.bento-card p{
+  margin: 14px 0 0;
+  font-size: 14px;
+  max-width: 380px;
+  opacity: .8;
+}
+.bento-card .meta{
+  margin-top: 24px;
+  display:flex; justify-content: space-between;
+  font-family: var(--mono); font-size: 11px;
+  letter-spacing: .08em; text-transform: uppercase; opacity: .7;
+  padding-top: 14px; border-top: 1px solid currentColor;
+  border-color: rgba(255,255,255,.2);
+}
+
+.bento-card .illu{
+  position: absolute; pointer-events:none;
+  transition: transform .8s var(--ease-out);
+}
+.bento-card:hover .illu{ transform: scale(1.06) rotate(-4deg); }
+
+.b-tee{
+  grid-column: 1 / span 7; min-height: 460px;
+  background: var(--violet); color: var(--bg);
+}
+.b-tee .meta{ border-color: rgba(255,255,255,.25); }
+.b-tee .illu{
+  right: -30px; top: 30px;
+  width: 56%; height: 90%;
+  color: var(--acid);
+}
+
+.b-hoodie{
+  grid-column: 8 / span 5; min-height: 460px;
+  background: var(--acid); color: var(--black);
+}
+.b-hoodie .meta{ border-color: rgba(0,0,0,.2); }
+.b-hoodie .illu{
+  right: -30px; bottom: -20px;
+  width: 70%; height: 80%;
+  color: var(--violet);
+}
+
+.b-long{
+  grid-column: 1 / span 5; min-height: 380px;
+  background: var(--pink); color: var(--bg);
+}
+.b-long .meta{ border-color: rgba(255,255,255,.25); }
+.b-long .illu{
+  right: -20px; top: 0;
+  width: 60%; height: 100%;
+  color: var(--black);
+}
+
+.b-detail{
+  grid-column: 6 / span 7; min-height: 380px;
+  background: var(--bg-2); color: var(--ink);
+  border: 1px solid var(--line);
+}
+.b-detail .meta{ border-color: var(--line); }
+.b-detail .illu{
+  right: -20px; bottom: -20px;
+  width: 50%; height: 95%;
+  color: var(--violet);
+}
+
+@media (max-width: 980px){
+  .b-tee, .b-hoodie, .b-long, .b-detail{ grid-column: 1 / -1; }
+}
+
+/* ───────────────────────────  PHOTO STRIP  ─────────────────────────── */
+.strip{
+  display:grid;
+  grid-template-columns: repeat(12, 1fr);
+  gap: 14px;
+  padding: 20px var(--pad);
+}
+.strip .photo{
+  border-radius: var(--radius);
+  will-change: transform;
+}
+.strip .p1{ grid-column: span 4; aspect-ratio: 4/5; }
+.strip .p2{ grid-column: span 3; aspect-ratio: 4/5; }
+.strip .p3{ grid-column: span 3; aspect-ratio: 4/5; }
+.strip .p4{ grid-column: span 2; aspect-ratio: 3/4; }
+@media (max-width: 820px){
+  .strip .p1{ grid-column: span 6; }
+  .strip .p2, .strip .p3, .strip .p4{ grid-column: span 6; aspect-ratio: 4/5; }
+}
+
+/* ───────────────────────────  GALLERY  ─────────────────────────── */
+.gallery{
+  display:grid;
+  grid-template-columns: repeat(12, 1fr);
+  grid-auto-rows: 120px;
+  gap: 14px;
+}
+.gallery .photo{ border-radius: var(--radius); will-change: transform; }
+.g1 { grid-column: span 5; grid-row: span 4; }
+.g2 { grid-column: span 4; grid-row: span 3; }
+.g3 { grid-column: span 3; grid-row: span 3; }
+.g4 { grid-column: span 4; grid-row: span 3; }
+.g5 { grid-column: span 3; grid-row: span 3; }
+.g6 { grid-column: span 5; grid-row: span 4; }
+.g7 { grid-column: span 4; grid-row: span 3; }
+.g8 { grid-column: span 8; grid-row: span 3; }
+.g9 { grid-column: span 4; grid-row: span 3; }
+
+@media (max-width: 980px){
+  .gallery{ grid-auto-rows: 100px; }
+  .g1, .g6, .g8 { grid-column: span 12; grid-row: span 3; }
+  .g2, .g3, .g4, .g5, .g7, .g9 { grid-column: span 6; grid-row: span 2; }
+}
+
+/* ───────────────────────────  AREAS  ─────────────────────────── */
+.areas{
+  display:grid; grid-template-columns: repeat(12, 1fr); gap: 16px;
+}
+.area{
+  grid-column: span 4;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-lg);
+  padding: 32px;
+  background: var(--bg-2);
+  position: relative;
+  transition: border-color .3s, transform .4s var(--ease), background .3s;
+  overflow: hidden;
+}
+.area:hover{ border-color: var(--ink); transform: translateY(-4px); }
+.area:nth-child(1){ grid-column: span 5; }
+.area:nth-child(2){ grid-column: span 4; background: var(--violet); color: var(--bg); border-color: var(--violet); }
+.area:nth-child(3){ grid-column: span 3; }
+.area:nth-child(4){ grid-column: span 4; }
+.area:nth-child(5){ grid-column: span 4; background: var(--black); color: var(--bg); border-color: var(--black); }
+.area:nth-child(6){ grid-column: span 4; background: var(--acid); border-color: var(--acid); }
+
+.area .a-icon{
+  width: 56px; height: 56px; margin-bottom: 24px;
+  color: currentColor;
+  transition: transform .6s var(--ease-pop);
+}
+.area:hover .a-icon{ transform: rotate(-8deg) scale(1.1); }
+
+.area .a-tag{
+  font-family: var(--mono); font-size: 11px;
+  letter-spacing: .08em; text-transform: uppercase;
+  color: var(--ink-dim);
+}
+.area:nth-child(2) .a-tag,
+.area:nth-child(5) .a-tag{ color: rgba(255,255,255,.65); }
+.area:nth-child(6) .a-tag{ color: rgba(0,0,0,.55); }
+
+.area h4{
+  margin: 12px 0 10px;
+  font-family: var(--display); font-weight: 700;
+  font-size: clamp(22px, 2.2vw, 32px);
+  letter-spacing: -.02em; line-height: 1.05;
+}
+.area p{ font-size: 14px; color: var(--ink-dim); margin: 0; }
+.area:nth-child(2) p, .area:nth-child(5) p{ color: rgba(255,255,255,.8); }
+.area:nth-child(6) p{ color: rgba(0,0,0,.65); }
+
+@media (max-width: 900px){ .area, .area:nth-child(n){ grid-column: 1 / -1; } }
+
+/* ───────────────────────────  PROCESS  ─────────────────────────── */
+.process{
+  display:grid; grid-template-columns: repeat(12, 1fr);
+  gap: 0;
+  border-top: 1px solid var(--line);
+}
+.step{
+  grid-column: span 12;
+  display:grid; grid-template-columns: 80px 80px 1fr 1fr;
+  gap: 28px;
+  padding: 36px 0;
+  border-bottom: 1px solid var(--line);
+  align-items: center;
+  transition: padding .35s var(--ease);
+  position: relative;
+}
+.step:hover{ padding-left: 16px; }
+.step::before{
+  content:""; position: absolute; left: 0; top: 0; bottom: 0;
+  width: 0; background: var(--violet);
+  transition: width .35s var(--ease);
+}
+.step:hover::before{ width: 6px; }
+
+.step .n{ font-family: var(--mono); font-size: 13px; color: var(--ink-dim); }
+.step .ic{
+  width: 56px; height: 56px;
+  color: var(--ink);
+  transition: transform .5s var(--ease-pop), color .3s;
+}
+.step:hover .ic{ transform: rotate(-12deg) scale(1.12); color: var(--violet); }
+.step .t{
+  font-family: var(--display); font-weight: 700;
+  font-size: clamp(24px, 3.2vw, 48px);
+  letter-spacing: -.025em; line-height: 1;
+  transition: transform .4s var(--ease);
+}
+.step:hover .t{ transform: translateX(6px); }
+.step:nth-child(2) .t .mark{ color: var(--pink); }
+.step:nth-child(3) .t .mark{ color: #8aac15; }
+.step:nth-child(4) .t .mark{ color: var(--violet); }
+.step:nth-child(5) .t .mark{ color: var(--pink); }
+.step:nth-child(6) .t .mark{ color: #8aac15; }
+.step .d{ font-size: 14px; color: var(--ink-dim); max-width: 460px; }
+
+@media (max-width: 820px){
+  .step{ grid-template-columns: 56px 1fr; gap: 14px; }
+  .step .n, .step .d{ grid-column: 1 / -1; }
+  .step .ic{ grid-row: span 2; }
+}
+
+/* ───────────────────────────  MANIFESTO  ─────────────────────────── */
+.manifesto{
+  display:grid; grid-template-columns: repeat(12, 1fr);
+  gap: 24px; align-items: end;
+  position: relative;
+}
+.manifesto .quote{
+  grid-column: 2 / span 10;
+  font-family: var(--display); font-weight: 300;
+  font-size: clamp(28px, 5vw, 72px);
+  line-height: 1.04; letter-spacing: -.03em;
+}
+.manifesto .quote .h{
+  background: linear-gradient(90deg, var(--pink), var(--violet));
+  -webkit-background-clip: text; background-clip: text;
+  color: transparent; font-weight: 800;
+}
+.manifesto .sig{
+  grid-column: 8 / span 5;
+  margin-top: 32px;
+  font-family: var(--mono); font-size: 12px;
+  letter-spacing: .08em; text-transform: uppercase; color: var(--ink-dim);
+  display:flex; align-items:center; gap: 14px;
+}
+.manifesto .sig .line{ width: 60px; height: 1px; background: var(--line-2); }
+.manifesto .deco{
+  position: absolute; left: 0; top: -40px;
+  width: clamp(80px, 9vw, 140px); height: clamp(80px, 9vw, 140px);
+  color: var(--acid);
+  animation: spin 28s linear infinite;
+}
+@media (max-width: 820px){
+  .manifesto .quote, .manifesto .sig{ grid-column: 1 / -1; }
+  .manifesto .deco{ display:none; }
+}
+
+/* ───────────────────────────  CASES  ─────────────────────────── */
+.cases{
+  display:grid; grid-template-columns: repeat(12, 1fr);
+  gap: 20px;
+}
+.case{
+  border-radius: var(--radius-lg);
+  overflow: hidden; position: relative;
+  border: 1px solid var(--line);
+  isolation: isolate;
+  transition: transform .4s var(--ease);
+  display:flex; flex-direction: column;
+  background: var(--bg-2);
+}
+.case:hover{ transform: translateY(-6px); }
+.case .photo{ flex: 1; min-height: 280px; border-radius: 0; }
+.case .body{
+  padding: 24px 28px;
+}
+.case .head{
+  display:flex; justify-content: space-between; align-items:flex-start;
+  font-family: var(--mono); font-size: 11px;
+  letter-spacing: .08em; text-transform: uppercase; color: var(--ink-dim);
+  margin-bottom: 12px;
+}
+.case .title{
+  font-family: var(--display); font-weight: 700;
+  font-size: clamp(20px, 2vw, 30px);
+  line-height: 1.1; letter-spacing: -.02em;
+}
+.case .foot{
+  margin-top: 14px;
+  display:flex; justify-content: space-between; align-items:flex-end;
+  font-family: var(--mono); font-size: 11px;
+  letter-spacing: .08em; text-transform: uppercase; color: var(--ink-dim);
+}
+
+.case.c1{ grid-column: span 7; min-height: 480px; }
+.case.c2{ grid-column: span 5; min-height: 480px; background: var(--pink); color: var(--bg); }
+.case.c3{ grid-column: span 4; background: var(--violet); color: var(--bg); }
+.case.c4{ grid-column: span 4; }
+.case.c5{ grid-column: span 4; background: var(--acid); color: var(--black); }
+
+.case.c2 .head, .case.c2 .foot{ color: rgba(255,255,255,.75); }
+.case.c3 .head, .case.c3 .foot{ color: rgba(255,255,255,.75); }
+.case.c5 .head, .case.c5 .foot{ color: rgba(0,0,0,.7); }
+
+@media (max-width: 980px){
+  .case.c1, .case.c2{ grid-column: 1 / -1; min-height: 420px; }
+  .case.c3, .case.c4, .case.c5{ grid-column: span 6; }
+}
+@media (max-width: 600px){
+  .case.c3, .case.c4, .case.c5{ grid-column: 1 / -1; }
+}
+
+/* ───────────────────────────  CTA / FORM  ─────────────────────────── */
+.cta{
+  position: relative;
+  border-radius: var(--radius-xl);
+  background: var(--black);
+  color: var(--bg);
+  padding: clamp(40px, 6vw, 80px);
+  overflow: hidden;
+  display:grid; grid-template-columns: repeat(12,1fr); gap: 24px;
+}
+.cta::before, .cta::after{
+  content:""; position:absolute; pointer-events:none;
+  border-radius: 50%; filter: blur(60px);
+}
+.cta::before{ width: 60%; height: 90%; top: -20%; left: -10%; background: var(--violet); opacity: .55; }
+.cta::after{ width: 50%; height: 80%; bottom: -20%; right: -10%; background: var(--pink); opacity: .45; }
+
+.cta-decor{
+  position:absolute; top: 36px; right: 36px;
+  width: 90px; height: 90px;
+  color: var(--acid);
+  animation: spin 20s linear infinite;
+  z-index: 2;
+}
+
+.cta h2{
+  grid-column: 1 / span 7;
+  font-family: var(--display); font-weight: 800;
+  font-size: clamp(40px, 7vw, 104px);
+  line-height: .92; letter-spacing: -.035em;
+  margin: 0; position: relative; z-index: 2;
+}
+.cta h2 .accent{ color: var(--acid); }
+.cta .lede{
+  grid-column: 1 / span 6;
+  color: rgba(255,255,255,.75); margin-top: 12px; font-size: 16px; max-width: 480px;
+  position: relative; z-index: 2;
+}
+
+.form{
+  grid-column: 7 / span 6;
+  background: rgba(255,255,255,.05);
+  border: 1px solid rgba(255,255,255,.12);
+  border-radius: var(--radius);
+  padding: 28px;
+  backdrop-filter: blur(12px);
+  position: relative; z-index: 2;
+}
+.form-grid{
+  display:grid; grid-template-columns: 1fr 1fr; gap: 14px;
+}
+.form-grid .full{ grid-column: 1 / -1; }
+.field{ display:flex; flex-direction: column; gap: 6px; }
+.field label{
+  font-family: var(--mono); font-size: 11px;
+  text-transform: uppercase; letter-spacing: .08em;
+  color: rgba(255,255,255,.65);
+}
+.field input, .field select, .field textarea{
+  background: transparent;
+  border: 0; border-bottom: 1px solid rgba(255,255,255,.25);
+  color: var(--bg);
+  font: 500 16px/1.4 var(--sans);
+  padding: 10px 0 12px;
+  outline: none;
+  transition: border-color .2s;
+}
+.field input::placeholder, .field textarea::placeholder{ color: rgba(255,255,255,.35); }
+.field input:focus, .field select:focus, .field textarea:focus{ border-color: var(--acid); }
+.field select{
+  appearance: none;
+  background-image: linear-gradient(45deg, transparent 50%, rgba(255,255,255,.5) 50%), linear-gradient(135deg, rgba(255,255,255,.5) 50%, transparent 50%);
+  background-position: calc(100% - 12px) 18px, calc(100% - 7px) 18px;
+  background-size: 5px 5px; background-repeat: no-repeat;
+}
+.field select option{ color: #0a0a0a; background: var(--bg-2); }
+.field textarea{ resize: vertical; min-height: 76px; }
+
+.form-submit{
+  grid-column: 1 / -1;
+  display:flex; justify-content: space-between; align-items: center;
+  margin-top: 6px;
+}
+.form-note{ font-family: var(--mono); font-size: 11px; color: rgba(255,255,255,.55); }
+.form-note a{ color: var(--bg); border-bottom: 1px solid rgba(255,255,255,.4); }
+
+.btn-submit{
+  display:inline-flex; align-items:center; gap: 12px;
+  padding: 16px 22px;
+  background: var(--acid); color: var(--black);
+  border-radius: 999px; font-weight: 700; font-size: 14px;
+  transition: transform .25s var(--ease), background .25s;
+}
+.btn-submit:hover{ transform: translateY(-2px); background: #d6ff4a; }
+
+.form-ok{
+  display:none;
+  padding: 24px; border-radius: var(--radius);
+  background: var(--acid); color: var(--black);
+  font-family: var(--display); font-weight: 700;
+  font-size: clamp(22px, 2.4vw, 32px); letter-spacing: -.02em;
+}
+.form.sent .form-grid{ display:none; }
+.form.sent .form-ok{ display:block; }
+
+@media (max-width: 960px){
+  .cta h2, .cta .lede, .form{ grid-column: 1 / -1; }
+  .form-grid{ grid-template-columns: 1fr; }
+}
+
+/* ───────────────────────────  FOOTER  ─────────────────────────── */
+.footer{
+  padding: 80px var(--pad) 36px;
+  border-top: 1px solid var(--line);
+  display:grid; grid-template-columns: repeat(12, 1fr);
+  gap: 24px;
+}
+.footer .word{
+  grid-column: 1 / -1;
+  font-family: var(--display);
+  font-weight: 800;
+  font-size: clamp(80px, 22vw, 360px);
+  line-height: .85;
+  letter-spacing: -.045em;
+  margin: 0 0 60px;
+  white-space: nowrap;
+  overflow:hidden;
+}
+.footer .word .o1{ color: var(--violet); }
+.footer .word .o2{ color: var(--pink); }
+.footer .word .o3{ color: #8aac15; }
+.footer .word .out{ -webkit-text-stroke: 1.5px var(--ink); color: transparent; }
+
+.foot-col{ grid-column: span 3; }
+.foot-col h5{
+  font-family: var(--mono); font-size: 11px;
+  text-transform: uppercase; letter-spacing: .08em;
+  color: var(--ink-dim); margin: 0 0 14px; font-weight: 500;
+}
+.foot-col a, .foot-col p{
+  display:block; font-size: 14px; color: var(--ink);
+  margin: 0 0 8px; transition: color .2s;
+}
+.foot-col a:hover{ color: var(--violet); }
+
+.foot-bottom{
+  grid-column: 1 / -1;
+  margin-top: 64px; padding-top: 24px;
+  border-top: 1px solid var(--line);
+  display:flex; justify-content: space-between; align-items:center;
+  font-family: var(--mono); font-size: 11px;
+  letter-spacing: .08em; text-transform: uppercase;
+  color: var(--ink-dim);
+}
+@media (max-width: 820px){ .foot-col{ grid-column: span 6; } }
+
+/* ───────────────────────────  CURSOR  ─────────────────────────── */
+.cursor{
+  position: fixed; top:0; left:0;
+  width: 14px; height: 14px;
+  border-radius: 50%;
+  background: var(--violet);
+  pointer-events:none; z-index: 9999;
+  mix-blend-mode: multiply;
+  transform: translate(-50%,-50%);
+  transition: width .25s var(--ease), height .25s var(--ease), background .25s;
+}
+.cursor.hover{ width: 56px; height: 56px; background: var(--pink); }
+@media (hover: none) { .cursor{ display:none; } }
+
+/* ───────────────────────────  REVEAL ANIM  ─────────────────────────── */
+.reveal{
+  opacity: 0; transform: translateY(40px);
+  transition: opacity 1s var(--ease-out), transform 1s var(--ease-out);
+}
+.reveal.in{ opacity:1; transform: translateY(0); }
+.reveal.d1{ transition-delay: .08s; }
+.reveal.d2{ transition-delay: .16s; }
+.reveal.d3{ transition-delay: .24s; }
+.reveal.d4{ transition-delay: .32s; }
+.reveal.d5{ transition-delay: .40s; }
+
+.reveal-clip{
+  clip-path: inset(0 100% 0 0);
+  transition: clip-path 1.2s var(--ease-out);
+}
+.reveal-clip.in{ clip-path: inset(0 0 0 0); }
+
+.reveal-scale{
+  opacity: 0; transform: scale(.92);
+  transition: opacity .8s var(--ease-out), transform .8s var(--ease-pop);
+}
+.reveal-scale.in{ opacity:1; transform: scale(1); }
+
+@media (prefers-reduced-motion: reduce){
+  *, *::before, *::after { animation: none !important; transition: none !important; }
+  .reveal, .reveal-clip, .reveal-scale{ opacity:1; transform: none; clip-path: none; }
+  .hero h1 .row .ch{ transform: none; opacity: 1; }
+}
+</style>
+</head>
+<body>
+
+<div class="cursor" id="cursor"></div>
+
+<!-- ═══════════════════════════════════════════════
+     SVG SPRITE — иллюстрации и иконки одной пачкой
+     ═══════════════════════════════════════════════ -->
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <defs>
+    <!-- футболка -->
+    <symbol id="i-tee" viewBox="0 0 200 200">
+      <path fill="currentColor" d="M70 28 L40 50 L20 90 L48 108 L60 92 L60 178 L140 178 L140 92 L152 108 L180 90 L160 50 L130 28 L122 28 C122 42 112 50 100 50 C88 50 78 42 78 28 Z"/>
+      <circle cx="100" cy="138" r="14" fill="rgba(0,0,0,.18)"/>
+    </symbol>
+    <!-- худи -->
+    <symbol id="i-hoodie" viewBox="0 0 200 200">
+      <path fill="currentColor" d="M70 40 C70 24 84 14 100 14 C116 14 130 24 130 40 L160 56 L182 96 L156 114 L146 100 L146 184 L54 184 L54 100 L44 114 L18 96 L40 56 Z"/>
+      <path fill="rgba(0,0,0,.25)" d="M70 40 C75 56 90 64 100 64 C110 64 125 56 130 40 L130 70 L100 90 L70 70 Z"/>
+      <rect x="84" y="100" width="32" height="56" rx="6" fill="rgba(0,0,0,.18)"/>
+    </symbol>
+    <!-- лонгслив -->
+    <symbol id="i-long" viewBox="0 0 220 200">
+      <path fill="currentColor" d="M86 24 L52 38 L16 84 L4 178 L40 184 L48 116 L52 124 L52 184 L168 184 L168 124 L172 116 L180 184 L216 178 L204 84 L168 38 L134 24 L130 24 C128 38 120 46 110 46 C100 46 92 38 90 24 Z"/>
+    </symbol>
+    <!-- ножницы -->
+    <symbol id="i-scissors" viewBox="0 0 64 64">
+      <circle cx="14" cy="48" r="10" fill="none" stroke="currentColor" stroke-width="3"/>
+      <circle cx="50" cy="48" r="10" fill="none" stroke="currentColor" stroke-width="3"/>
+      <path d="M22 40 L56 8 M42 40 L8 8" stroke="currentColor" stroke-width="3" stroke-linecap="round"/>
+      <circle cx="32" cy="34" r="3" fill="currentColor"/>
+    </symbol>
+    <!-- швейная машинка -->
+    <symbol id="i-machine" viewBox="0 0 64 64">
+      <rect x="6" y="14" width="52" height="28" rx="4" fill="none" stroke="currentColor" stroke-width="3"/>
+      <path d="M14 42 L14 54 L50 54 L50 42" fill="none" stroke="currentColor" stroke-width="3"/>
+      <circle cx="48" cy="28" r="5" fill="none" stroke="currentColor" stroke-width="3"/>
+      <path d="M22 28 L22 50" stroke="currentColor" stroke-width="3"/>
+      <path d="M18 50 L26 50" stroke="currentColor" stroke-width="3" stroke-linecap="round"/>
+    </symbol>
+    <!-- катушка ниток -->
+    <symbol id="i-spool" viewBox="0 0 64 64">
+      <rect x="10" y="10" width="44" height="44" rx="6" fill="none" stroke="currentColor" stroke-width="3"/>
+      <path d="M14 18 H50 M14 26 H50 M14 34 H50 M14 42 H50 M14 50 H50" stroke="currentColor" stroke-width="2" opacity=".5"/>
+    </symbol>
+    <!-- упаковка / коробка -->
+    <symbol id="i-box" viewBox="0 0 64 64">
+      <path d="M8 18 L32 6 L56 18 L56 48 L32 60 L8 48 Z" fill="none" stroke="currentColor" stroke-width="3" stroke-linejoin="round"/>
+      <path d="M8 18 L32 30 L56 18 M32 30 L32 60" stroke="currentColor" stroke-width="3"/>
+      <path d="M20 12 L44 24" stroke="currentColor" stroke-width="3" opacity=".4"/>
+    </symbol>
+    <!-- доставка -->
+    <symbol id="i-truck" viewBox="0 0 64 64">
+      <rect x="4" y="20" width="34" height="24" rx="2" fill="none" stroke="currentColor" stroke-width="3"/>
+      <path d="M38 28 H50 L60 38 V44 H38 Z" fill="none" stroke="currentColor" stroke-width="3"/>
+      <circle cx="16" cy="48" r="6" fill="none" stroke="currentColor" stroke-width="3"/>
+      <circle cx="48" cy="48" r="6" fill="none" stroke="currentColor" stroke-width="3"/>
+    </symbol>
+    <!-- проверка / лупа -->
+    <symbol id="i-check" viewBox="0 0 64 64">
+      <circle cx="28" cy="28" r="18" fill="none" stroke="currentColor" stroke-width="3"/>
+      <path d="M41 41 L56 56" stroke="currentColor" stroke-width="3" stroke-linecap="round"/>
+      <path d="M20 28 L26 34 L36 22" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+    </symbol>
+    <!-- бриф / документ -->
+    <symbol id="i-brief" viewBox="0 0 64 64">
+      <path d="M14 6 H40 L52 18 V58 H14 Z" fill="none" stroke="currentColor" stroke-width="3" stroke-linejoin="round"/>
+      <path d="M40 6 V18 H52" fill="none" stroke="currentColor" stroke-width="3" stroke-linejoin="round"/>
+      <path d="M22 28 H44 M22 36 H44 M22 44 H36" stroke="currentColor" stroke-width="3" stroke-linecap="round"/>
+    </symbol>
+    <!-- лекало / линейка -->
+    <symbol id="i-ruler" viewBox="0 0 64 64">
+      <rect x="6" y="22" width="52" height="20" rx="3" fill="none" stroke="currentColor" stroke-width="3" transform="rotate(-12 32 32)"/>
+      <path d="M14 28 V32 M22 26 V34 M30 24 V32 M38 22 V30 M46 20 V28 M54 18 V26" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" transform="rotate(-12 32 32)"/>
+    </symbol>
+    <!-- здания / корпоратив -->
+    <symbol id="i-corp" viewBox="0 0 64 64">
+      <rect x="6" y="22" width="22" height="36" fill="none" stroke="currentColor" stroke-width="3"/>
+      <rect x="32" y="10" width="26" height="48" fill="none" stroke="currentColor" stroke-width="3"/>
+      <path d="M12 30 H22 M12 38 H22 M12 46 H22 M38 18 H52 M38 26 H52 M38 34 H52 M38 42 H52 M38 50 H52" stroke="currentColor" stroke-width="2"/>
+    </symbol>
+    <!-- группа / команда -->
+    <symbol id="i-people" viewBox="0 0 64 64">
+      <circle cx="22" cy="20" r="7" fill="none" stroke="currentColor" stroke-width="3"/>
+      <circle cx="44" cy="20" r="7" fill="none" stroke="currentColor" stroke-width="3"/>
+      <path d="M8 50 C10 38 18 32 22 32 C26 32 34 38 36 50" fill="none" stroke="currentColor" stroke-width="3"/>
+      <path d="M30 50 C32 38 40 32 44 32 C48 32 56 38 58 50" fill="none" stroke="currentColor" stroke-width="3"/>
+    </symbol>
+    <!-- ивент / флаг -->
+    <symbol id="i-event" viewBox="0 0 64 64">
+      <path d="M14 8 V58" stroke="currentColor" stroke-width="3" stroke-linecap="round"/>
+      <path d="M14 12 L50 12 L42 22 L50 32 L14 32 Z" fill="none" stroke="currentColor" stroke-width="3" stroke-linejoin="round"/>
+    </symbol>
+    <!-- агентство / молния -->
+    <symbol id="i-bolt" viewBox="0 0 64 64">
+      <path d="M34 4 L12 36 H28 L22 60 L52 26 H34 L40 4 Z" fill="none" stroke="currentColor" stroke-width="3" stroke-linejoin="round"/>
+    </symbol>
+    <!-- сообщества / сердце+чат -->
+    <symbol id="i-chat" viewBox="0 0 64 64">
+      <path d="M8 14 H50 C53 14 56 17 56 20 V40 C56 43 53 46 50 46 H30 L18 56 V46 H14 C11 46 8 43 8 40 V20 C8 17 11 14 14 14 Z" fill="none" stroke="currentColor" stroke-width="3" stroke-linejoin="round"/>
+      <path d="M22 30 L28 36 L42 22" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+    </symbol>
+    <!-- спорт / мяч -->
+    <symbol id="i-ball" viewBox="0 0 64 64">
+      <circle cx="32" cy="32" r="24" fill="none" stroke="currentColor" stroke-width="3"/>
+      <path d="M32 8 L26 26 L8 30 M32 8 L38 26 L56 30 M26 26 L20 46 L32 56 L44 46 L38 26 Z" fill="none" stroke="currentColor" stroke-width="3" stroke-linejoin="round"/>
+    </symbol>
+    <!-- статистика -->
+    <symbol id="i-graph" viewBox="0 0 64 64">
+      <path d="M8 54 H56" stroke="currentColor" stroke-width="3" stroke-linecap="round"/>
+      <rect x="14" y="34" width="8" height="20" fill="currentColor" rx="2"/>
+      <rect x="28" y="22" width="8" height="32" fill="currentColor" rx="2"/>
+      <rect x="42" y="10" width="8" height="44" fill="currentColor" rx="2"/>
+    </symbol>
+    <!-- часы -->
+    <symbol id="i-clock" viewBox="0 0 64 64">
+      <circle cx="32" cy="32" r="24" fill="none" stroke="currentColor" stroke-width="3"/>
+      <path d="M32 18 V32 L42 38" stroke="currentColor" stroke-width="3" stroke-linecap="round"/>
+    </symbol>
+    <!-- декор: звезда -->
+    <symbol id="d-star" viewBox="0 0 64 64">
+      <path fill="currentColor" d="M32 0 L36 24 L60 28 L40 36 L48 60 L32 44 L16 60 L24 36 L4 28 L28 24 Z"/>
+    </symbol>
+    <!-- декор: астериск/цветок -->
+    <symbol id="d-aster" viewBox="0 0 64 64">
+      <path fill="currentColor" d="M32 0 C36 16 36 20 48 16 C44 28 44 28 60 32 C44 36 44 36 48 48 C36 44 36 44 32 64 C28 44 28 44 16 48 C20 36 20 36 4 32 C20 28 20 28 16 16 C28 20 28 20 32 0 Z"/>
+    </symbol>
+    <!-- декор: плюс -->
+    <symbol id="d-plus" viewBox="0 0 32 32">
+      <path d="M16 2 V30 M2 16 H30" stroke="currentColor" stroke-width="4" stroke-linecap="round"/>
+    </symbol>
+  </defs>
+</svg>
+
+<!-- ═══════════════════════ NAV ═══════════════════════ -->
+<nav class="nav" id="nav">
+  <a href="#top" class="brand" aria-label="Мой крой">
+    <span class="brand-mark" aria-hidden="true"></span>
+    <span>МОЙ&nbsp;КРОЙ</span>
+  </a>
+  <div class="nav-links">
+    <a href="#what">Что шьём</a>
+    <a href="#gallery">Галерея</a>
+    <a href="#whom">Кому</a>
+    <a href="#process">Процесс</a>
+    <a href="#cases">Кейсы</a>
+    <a href="#contact">Контакты</a>
+  </div>
+  <a href="#contact" class="nav-cta">
+    <span class="dot" aria-hidden="true"></span>
+    Рассчитать мерч
+  </a>
+</nav>
+
+<!-- ═══════════════════════ HERO ═══════════════════════ -->
+<header class="hero" id="top">
+  <!-- параллакс пятна -->
+  <div class="blob blob-violet" data-parallax="-0.18"></div>
+  <div class="blob blob-pink"   data-parallax="0.12"></div>
+  <div class="blob blob-acid"   data-parallax="-0.08"></div>
+
+  <!-- декоративные графические элементы -->
+  <svg class="deco-aster" data-parallax="0.10"><use href="#d-aster"/></svg>
+  <svg class="deco-star"  data-parallax="-0.14"><use href="#d-star"/></svg>
+  <svg class="deco-plus"  data-parallax="0.20"><use href="#d-plus"/></svg>
+
+  <div class="hero-grid">
+    <div class="hero-top">
+      <span class="eyebrow">
+        <span class="pulse"></span>
+        SS / 26 · ШВЕЙНАЯ ФАБРИКА МЕРЧА
+      </span>
+      <div class="sticker" aria-hidden="true">
+        <svg class="ring" viewBox="0 0 168 168">
+          <defs><path id="circ" d="M84,84 m-66,0 a66,66 0 1,1 132,0 a66,66 0 1,1 -132,0"/></defs>
+          <text font-family="JetBrains Mono, monospace" font-size="11" letter-spacing="3" fill="#0a0a0a">
+            <textPath href="#circ">• ПОЛНЫЙ ЦИКЛ • КРОЙ • ПЕЧАТЬ • ВЫШИВКА • ДОСТАВКА</textPath>
+          </text>
+        </svg>
+        <span class="core">КП<br>за&nbsp;24&nbsp;ч</span>
+      </div>
+    </div>
+
+    <h1 id="heroTitle" data-split>
+      <span class="row">МЕРЧ,</span>
+      <span class="row pad-l outline">который</span>
+      <span class="row">
+        ХОТЯТ
+        <svg class="hero-shirt"><use href="#i-tee"/></svg>
+        <span class="accent-pink">НОСИТЬ</span>.
+      </span>
+      <span class="row accent-acid">Не выбрасывать.</span>
+    </h1>
+
+    <div class="hero-bottom">
+      <p class="hero-meta">
+        Швейная фабрика полного цикла. Шьём мерч для&nbsp;брендов, корпораций
+        и&nbsp;мероприятий — от&nbsp;<strong>30&nbsp;до&nbsp;30&nbsp;000</strong> единиц.
+        Лекала, ткань, фурнитура, печать и&nbsp;упаковка под одной крышей.
+      </p>
+
+      <div class="hero-cta">
+        <a href="#contact" class="btn btn-primary magnetic" data-cursor="hover">
+          Получить&nbsp;КП
+          <span class="arrow" aria-hidden="true">
+            <svg width="14" height="14" viewBox="0 0 12 12" fill="none">
+              <path d="M2 10 L10 2 M4 2 H10 V8" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+          </span>
+        </a>
+        <a href="#gallery" class="btn btn-ghost magnetic" data-cursor="hover">
+          Смотреть галерею
+        </a>
+      </div>
+    </div>
+  </div>
+</header>
+
+<!-- ═══════════════════════ TICKER ═══════════════════════ -->
+<div class="ticker" aria-hidden="true">
+  <div class="ticker-track">
+    <span>ФУТБОЛКИ <span class="dot acid"></span> ХУДИ <span class="dot"></span> ЛОНГСЛИВЫ <span class="dot violet"></span> <span class="stroke">МЕРЧ ДЛЯ БРЕНДОВ</span> <span class="dot acid"></span> КОНФЕРЕНЦИИ <span class="dot"></span> ФЕСТИВАЛИ <span class="dot violet"></span> КОРПОРАТИВ <span class="dot acid"></span></span>
+    <span>ФУТБОЛКИ <span class="dot acid"></span> ХУДИ <span class="dot"></span> ЛОНГСЛИВЫ <span class="dot violet"></span> <span class="stroke">МЕРЧ ДЛЯ БРЕНДОВ</span> <span class="dot acid"></span> КОНФЕРЕНЦИИ <span class="dot"></span> ФЕСТИВАЛИ <span class="dot violet"></span> КОРПОРАТИВ <span class="dot acid"></span></span>
+  </div>
+</div>
+
+<!-- ═══════════════════════ STATS ═══════════════════════ -->
+<div class="stats">
+  <div class="stat reveal-scale">
+    <svg class="icon"><use href="#i-clock"/></svg>
+    <div class="v acid"><span data-count="9" data-suffix=" лет">0</span></div>
+    <div class="l">на рынке корпоративного пошива</div>
+  </div>
+  <div class="stat reveal-scale d1">
+    <svg class="icon"><use href="#i-graph"/></svg>
+    <div class="v"><span data-count="312400" data-suffix="">0</span></div>
+    <div class="l">единиц мерча сшито в 2025</div>
+  </div>
+  <div class="stat reveal-scale d2">
+    <svg class="icon"><use href="#i-people"/></svg>
+    <div class="v pink"><span data-count="180" data-suffix="+">0</span></div>
+    <div class="l">брендов и компаний</div>
+  </div>
+  <div class="stat reveal-scale d3">
+    <svg class="icon"><use href="#i-truck"/></svg>
+    <div class="v violet"><span data-count="7" data-suffix=" дней">0</span></div>
+    <div class="l">минимальный срок от&nbsp;ТЗ до&nbsp;отгрузки</div>
+  </div>
+</div>
+
+<!-- ═══════════════════════ WHAT ═══════════════════════ -->
+<section id="what">
+  <div class="section-head">
+    <div class="section-tag reveal">
+      <span class="eyebrow"><span class="pulse"></span> 01 · Что шьём</span>
+    </div>
+    <h2 class="section-title reveal d1">
+      Базовый трикотаж <br>
+      <span class="outline">премиального</span>
+      <svg class="icon-inline" style="color: var(--violet)"><use href="#i-spool"/></svg>
+      <span class="accent">качества.</span>
+    </h2>
+  </div>
+
+  <div class="bento">
+    <article class="bento-card b-tee reveal-scale" data-cursor="hover">
+      <div>
+        <div class="b-num">/ 01 — FLAGSHIP</div>
+        <h3>Футболки <br>с&nbsp;печатью <br>и&nbsp;вышивкой</h3>
+        <p>Хлопок 100% / 180–220 г/м². DTF, шелкография, прямая печать DTG, машинная вышивка.</p>
+      </div>
+      <div class="meta">
+        <span>Тираж от 30 шт</span>
+        <span>→ от 690 ₽/шт</span>
+      </div>
+      <svg class="illu" viewBox="0 0 200 200"><use href="#i-tee"/></svg>
+    </article>
+
+    <article class="bento-card b-hoodie reveal-scale d1" data-cursor="hover">
+      <div>
+        <div class="b-num">/ 02</div>
+        <h3>Худи <br>и&nbsp;зипы</h3>
+        <p>Плотный футер 320–380 г/м² с&nbsp;начёсом. Капюшон с&nbsp;подкладом.</p>
+      </div>
+      <div class="meta">
+        <span>320–380 г/м²</span>
+        <span>→ от 1 890 ₽</span>
+      </div>
+      <svg class="illu" viewBox="0 0 200 200"><use href="#i-hoodie"/></svg>
+    </article>
+
+    <article class="bento-card b-long reveal-scale" data-cursor="hover">
+      <div>
+        <div class="b-num">/ 03</div>
+        <h3>Лонг&shy;сливы</h3>
+        <p>Гладкий рукав, реглан, со&nbsp;стойкой. Принт и&nbsp;шеврон.</p>
+      </div>
+      <div class="meta">
+        <span>Размеры XS–4XL</span>
+        <span>→ от 990 ₽</span>
+      </div>
+      <svg class="illu" viewBox="0 0 220 200"><use href="#i-long"/></svg>
+    </article>
+
+    <article class="bento-card b-detail reveal-scale d1" data-cursor="hover">
+      <div>
+        <div class="b-num">/ 04 — DETAIL</div>
+        <h3>Печать, <br>вышивка, <br>шевроны</h3>
+        <p>4&nbsp;вышивальные головы, шелкография на&nbsp;14&nbsp;цветов, DTF/DTG, термоплёнка.</p>
+      </div>
+      <div class="meta">
+        <span>Принт до A2</span>
+        <span>→ образец за 48 ч</span>
+      </div>
+      <svg class="illu" viewBox="0 0 64 64"><use href="#i-machine"/></svg>
+    </article>
+  </div>
+</section>
+
+<!-- ═══════════════════════ PHOTO STRIP ═══════════════════════ -->
+<div class="strip">
+  <div class="photo p1 reveal-scale" data-parallax="0.04" data-label="strip-1.jpg" data-kind="ФУТБОЛКА · ЧЁРНАЯ">
+    <span class="stamp">01</span>
+    <img src="images/strip-1.jpg" alt="" loading="lazy" />
+  </div>
+  <div class="photo p2 reveal-scale d1" data-parallax="-0.06" data-label="strip-2.jpg" data-kind="ХУДИ · ОВЕРСАЙЗ">
+    <span class="stamp">02</span>
+    <img src="images/strip-2.jpg" alt="" loading="lazy" />
+  </div>
+  <div class="photo p3 reveal-scale d2" data-parallax="0.03" data-label="strip-3.jpg" data-kind="ЛОНГСЛИВ">
+    <span class="stamp">03</span>
+    <img src="images/strip-3.jpg" alt="" loading="lazy" />
+  </div>
+  <div class="photo p4 reveal-scale d3" data-parallax="-0.04" data-label="strip-4.jpg" data-kind="ВЫШИВКА · ШЕВРОН">
+    <span class="stamp">04</span>
+    <img src="images/strip-4.jpg" alt="" loading="lazy" />
+  </div>
+</div>
+
+<!-- ═══════════════════════ GALLERY ═══════════════════════ -->
+<section id="gallery">
+  <div class="section-head">
+    <div class="section-tag reveal">
+      <span class="eyebrow"><span class="pulse"></span> 02 · Изделия в кадре</span>
+    </div>
+    <h2 class="section-title reveal d1">
+      Каталог наших <br>
+      готовых
+      <svg class="icon-inline" style="color: var(--pink)"><use href="#i-scissors"/></svg>
+      <span class="violet">работ.</span>
+    </h2>
+  </div>
+
+  <div class="gallery">
+    <div class="photo g1 reveal-scale" data-parallax="0.03" data-label="gallery-01.jpg" data-kind="ОБЛОЖКА · 1200×1500">
+      <span class="stamp">01</span><img src="images/gallery-01.jpg" alt="" loading="lazy"/>
+    </div>
+    <div class="photo g2 reveal-scale d1" data-parallax="-0.04" data-label="gallery-02.jpg" data-kind="ФУТБОЛКА">
+      <span class="stamp">02</span><img src="images/gallery-02.jpg" alt="" loading="lazy"/>
+    </div>
+    <div class="photo g3 reveal-scale d2" data-parallax="0.05" data-label="gallery-03.jpg" data-kind="ДЕТАЛЬ ПЕЧАТИ">
+      <span class="stamp">03</span><img src="images/gallery-03.jpg" alt="" loading="lazy"/>
+    </div>
+    <div class="photo g4 reveal-scale d1" data-parallax="-0.03" data-label="gallery-04.jpg" data-kind="ХУДИ · СПИНА">
+      <span class="stamp">04</span><img src="images/gallery-04.jpg" alt="" loading="lazy"/>
+    </div>
+    <div class="photo g5 reveal-scale d2" data-parallax="0.04" data-label="gallery-05.jpg" data-kind="ЛОНГСЛИВ">
+      <span class="stamp">05</span><img src="images/gallery-05.jpg" alt="" loading="lazy"/>
+    </div>
+    <div class="photo g6 reveal-scale d3" data-parallax="-0.05" data-label="gallery-06.jpg" data-kind="LOOKBOOK · ПОЛНЫЙ РОСТ">
+      <span class="stamp">06</span><img src="images/gallery-06.jpg" alt="" loading="lazy"/>
+    </div>
+    <div class="photo g7 reveal-scale" data-parallax="0.03" data-label="gallery-07.jpg" data-kind="ВЫШИВКА · ЯРЛЫК">
+      <span class="stamp">07</span><img src="images/gallery-07.jpg" alt="" loading="lazy"/>
+    </div>
+    <div class="photo g8 reveal-scale d1" data-parallax="-0.04" data-label="gallery-08.jpg" data-kind="КОМАНДА · ГРУППОВОЕ">
+      <span class="stamp">08</span><img src="images/gallery-08.jpg" alt="" loading="lazy"/>
+    </div>
+    <div class="photo g9 reveal-scale d2" data-parallax="0.05" data-label="gallery-09.jpg" data-kind="УПАКОВКА · BOX">
+      <span class="stamp">09</span><img src="images/gallery-09.jpg" alt="" loading="lazy"/>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════════════════ WHOM ═══════════════════════ -->
+<section id="whom">
+  <div class="section-head">
+    <div class="section-tag reveal">
+      <span class="eyebrow"><span class="pulse"></span> 03 · Для кого</span>
+    </div>
+    <h2 class="section-title reveal d1">
+      Один цех — <span class="violet">шесть форматов</span> <br>
+      работы с&nbsp;<span class="accent">клиентом.</span>
+    </h2>
+  </div>
+
+  <div class="areas">
+    <div class="area reveal-scale" data-cursor="hover">
+      <svg class="a-icon"><use href="#i-spool"/></svg>
+      <div class="a-tag">01 · BRANDS</div>
+      <h4>Бренды и&nbsp;стартапы</h4>
+      <p>Капсула, дроп, фирменный мерч магазина. Полный цикл от&nbsp;лекал до&nbsp;маркировки и&nbsp;Wildberries-упаковки.</p>
+    </div>
+    <div class="area reveal-scale d1" data-cursor="hover">
+      <svg class="a-icon"><use href="#i-corp"/></svg>
+      <div class="a-tag">02 · CORPORATE</div>
+      <h4>Корпорации</h4>
+      <p>Welcome-боксы, мерч сотрудников, корпоративные подарки, ребрендинг. Договор, закрывающие документы, НДС.</p>
+    </div>
+    <div class="area reveal-scale d2" data-cursor="hover">
+      <svg class="a-icon"><use href="#i-event"/></svg>
+      <div class="a-tag">03 · EVENTS</div>
+      <h4>События</h4>
+      <p>Конференции, фестивали, спортивные ивенты. Срочные тиражи&nbsp;— под&nbsp;дату.</p>
+    </div>
+    <div class="area reveal-scale d1" data-cursor="hover">
+      <svg class="a-icon"><use href="#i-bolt"/></svg>
+      <div class="a-tag">04 · AGENCIES</div>
+      <h4>Агентства и&nbsp;продакшены</h4>
+      <p>Работаем с&nbsp;брендинг-агентствами, PR и&nbsp;ивент-командами под&nbsp;вашим брендом и&nbsp;NDA.</p>
+    </div>
+    <div class="area reveal-scale d2" data-cursor="hover">
+      <svg class="a-icon"><use href="#i-chat"/></svg>
+      <div class="a-tag">05 · COMMUNITIES</div>
+      <h4>Сообщества и&nbsp;медиа</h4>
+      <p>Клубы, школы, YouTube- и&nbsp;Telegram-проекты. Маленькие тиражи, лимитированные дропы, дозаказ.</p>
+    </div>
+    <div class="area reveal-scale d3" data-cursor="hover">
+      <svg class="a-icon"><use href="#i-ball"/></svg>
+      <div class="a-tag">06 · SPORT</div>
+      <h4>Спортивные команды</h4>
+      <p>Игровая форма, тренировочный комплект, болельщицкий мерч. Номера, фамилии, спонсорские шевроны.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════════════════ MANIFESTO ═══════════════════════ -->
+<section>
+  <div class="manifesto">
+    <svg class="deco"><use href="#d-aster"/></svg>
+    <p class="quote reveal">
+      Мы&nbsp;не&nbsp;«типография на&nbsp;футболках». <br>
+      Мы&nbsp;<span class="h">шьём с&nbsp;нуля</span>: считаем&nbsp;лекало, выбираем плотность, делаем&nbsp;пробник —
+      и&nbsp;только&nbsp;потом запускаем поток.
+    </p>
+    <div class="sig reveal d2">
+      <span class="line"></span>
+      <span>Манифест фабрики · 2026</span>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════════════════ PROCESS ═══════════════════════ -->
+<section id="process">
+  <div class="section-head">
+    <div class="section-tag reveal">
+      <span class="eyebrow"><span class="pulse"></span> 04 · Как работаем</span>
+    </div>
+    <h2 class="section-title reveal d1">
+      Пять
+      <svg class="icon-inline" style="color: #8aac15"><use href="#i-machine"/></svg>
+      <span class="acid">шагов</span> <br>
+      от&nbsp;ТЗ до&nbsp;отгрузки.
+    </h2>
+  </div>
+
+  <div class="process">
+    <div class="step reveal">
+      <div class="n">/ 01</div>
+      <svg class="ic"><use href="#i-brief"/></svg>
+      <div class="t">Бриф и&nbsp;<span class="mark">смета</span></div>
+      <div class="d">Уточняем тираж, материалы, дедлайн. Возвращаем КП в&nbsp;течение 24&nbsp;часов с&nbsp;3-мя вариантами по&nbsp;цене.</div>
+    </div>
+    <div class="step reveal d1">
+      <div class="n">/ 02</div>
+      <svg class="ic"><use href="#i-ruler"/></svg>
+      <div class="t">Лекало &amp;&nbsp;<span class="mark">пробник</span></div>
+      <div class="d">Создаём конструктив под&nbsp;задачу. Шьём seal-sample, согласуем посадку, плотность, цвет ниток и&nbsp;принта.</div>
+    </div>
+    <div class="step reveal d2">
+      <div class="n">/ 03</div>
+      <svg class="ic"><use href="#i-spool"/></svg>
+      <div class="t">Закуп <span class="mark">ткани</span></div>
+      <div class="d">Прямые контракты с&nbsp;фабриками: Турция, Узбекистан, Иваново. Сертификаты и&nbsp;паспорта качества.</div>
+    </div>
+    <div class="step reveal d1">
+      <div class="n">/ 04</div>
+      <svg class="ic"><use href="#i-machine"/></svg>
+      <div class="t">Крой, пошив, <span class="mark">декор</span></div>
+      <div class="d">28&nbsp;швейных машин, автомат раскроя, 4&nbsp;вышивальные головы, шелкография и&nbsp;DTF под&nbsp;одной крышей.</div>
+    </div>
+    <div class="step reveal d2">
+      <div class="n">/ 05</div>
+      <svg class="ic"><use href="#i-check"/></svg>
+      <div class="t">Контроль &amp;&nbsp;<span class="mark">отгрузка</span></div>
+      <div class="d">Поштучная&nbsp;проверка, тэги, фирменная упаковка. Доставка по&nbsp;РФ и&nbsp;СНГ, «Честный знак» при необходимости.</div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════════════════ CASES ═══════════════════════ -->
+<section id="cases">
+  <div class="section-head">
+    <div class="section-tag reveal">
+      <span class="eyebrow"><span class="pulse"></span> 05 · Кейсы</span>
+    </div>
+    <h2 class="section-title reveal d1">
+      Бренды, для&nbsp;которых <br>
+      мы&nbsp;<span class="violet">кроим.</span>
+    </h2>
+  </div>
+
+  <div class="cases">
+    <article class="case c1 reveal-scale" data-cursor="hover">
+      <div class="photo" data-label="case-01.jpg" data-kind="КЕЙС · TECH · 1600×1000">
+        <span class="stamp">/01</span><img src="images/case-01.jpg" alt="" loading="lazy"/>
+      </div>
+      <div class="body">
+        <div class="head"><span>2025</span><span>Корпорация · Tech</span></div>
+        <div class="title">3&nbsp;200 худи к&nbsp;ребрендингу за&nbsp;14&nbsp;дней</div>
+        <div class="foot"><span>320 г/м² · Шелкография</span><span>→ кейс</span></div>
+      </div>
+    </article>
+
+    <article class="case c2 reveal-scale d1" data-cursor="hover">
+      <div class="photo" data-label="case-02.jpg" data-kind="ФЕСТИВАЛЬ">
+        <span class="stamp">/02</span><img src="images/case-02.jpg" alt="" loading="lazy"/>
+      </div>
+      <div class="body">
+        <div class="head"><span>2025</span><span>Фестиваль</span></div>
+        <div class="title">Мерч open-air на&nbsp;14&nbsp;000 гостей</div>
+        <div class="foot"><span>Футболки + банданы + патчи</span><span>→ кейс</span></div>
+      </div>
+    </article>
+
+    <article class="case c3 reveal-scale" data-cursor="hover">
+      <div class="photo dark" data-label="case-03.jpg" data-kind="FMCG · DROP">
+        <span class="stamp">/03</span><img src="images/case-03.jpg" alt="" loading="lazy"/>
+      </div>
+      <div class="body">
+        <div class="head"><span>2024</span><span>FMCG</span></div>
+        <div class="title">Лимитированный дроп для&nbsp;запуска продукта</div>
+        <div class="foot"><span>500 шт · 48 ч</span><span>→</span></div>
+      </div>
+    </article>
+
+    <article class="case c4 reveal-scale d1" data-cursor="hover">
+      <div class="photo" data-label="case-04.jpg" data-kind="SPORT · ФОРМА">
+        <span class="stamp">/04</span><img src="images/case-04.jpg" alt="" loading="lazy"/>
+      </div>
+      <div class="body">
+        <div class="head"><span>2024</span><span>Sport</span></div>
+        <div class="title">Игровая форма лиги на&nbsp;сезон</div>
+        <div class="foot"><span>12 команд · 480 комплектов</span><span>→</span></div>
+      </div>
+    </article>
+
+    <article class="case c5 reveal-scale d2" data-cursor="hover">
+      <div class="photo" data-label="case-05.jpg" data-kind="EDU · WELCOME">
+        <span class="stamp">/05</span><img src="images/case-05.jpg" alt="" loading="lazy"/>
+      </div>
+      <div class="body">
+        <div class="head"><span>2025</span><span>Education</span></div>
+        <div class="title">Welcome-набор для&nbsp;первокурсников</div>
+        <div class="foot"><span>Худи + лонгслив + сумка</span><span>→</span></div>
+      </div>
+    </article>
+  </div>
+</section>
+
+<!-- ═══════════════════════ CTA ═══════════════════════ -->
+<section id="contact">
+  <div class="cta">
+    <svg class="cta-decor"><use href="#d-aster"/></svg>
+    <h2 class="reveal">
+      Запустим <span class="accent">мерч</span> <br>
+      вашего бренда.
+    </h2>
+    <p class="lede reveal d1">
+      Расскажите о&nbsp;задаче — в&nbsp;течение 24&nbsp;часов вернёмся
+      с&nbsp;прайсом, тайм-планом и&nbsp;тремя вариантами тиража.
+    </p>
+
+    <form class="form reveal d2" id="leadForm" novalidate>
+      <div class="form-grid">
+        <div class="field">
+          <label for="f-name">Имя</label>
+          <input id="f-name" name="name" type="text" required placeholder="Анна Светлова" />
+        </div>
+        <div class="field">
+          <label for="f-company">Компания</label>
+          <input id="f-company" name="company" type="text" placeholder="Бренд / агентство" />
+        </div>
+        <div class="field">
+          <label for="f-contact">Телефон или Telegram</label>
+          <input id="f-contact" name="contact" type="text" required placeholder="+7 / @username" />
+        </div>
+        <div class="field">
+          <label for="f-type">Что шьём</label>
+          <select id="f-type" name="type">
+            <option>Футболки</option>
+            <option>Худи / зипы</option>
+            <option>Лонгсливы</option>
+            <option>Сборный мерч-комплект</option>
+            <option>Ещё не решили — нужен совет</option>
+          </select>
+        </div>
+        <div class="field">
+          <label for="f-qty">Тираж, шт</label>
+          <input id="f-qty" name="qty" type="text" placeholder="напр. 500" />
+        </div>
+        <div class="field">
+          <label for="f-deadline">Дедлайн</label>
+          <input id="f-deadline" name="deadline" type="text" placeholder="напр. 12 июня" />
+        </div>
+        <div class="field full">
+          <label for="f-brief">Коротко о задаче</label>
+          <textarea id="f-brief" name="brief" placeholder="Бренд, материал, печать, доставка…"></textarea>
+        </div>
+        <div class="form-submit full">
+          <span class="form-note">Нажимая «Отправить», вы&nbsp;соглашаетесь с&nbsp;<a href="#">политикой обработки данных</a></span>
+          <button class="btn-submit magnetic" type="submit" data-cursor="hover">
+            Отправить заявку →
+          </button>
+        </div>
+      </div>
+      <div class="form-ok">
+        Спасибо! Передали менеджеру.<br>
+        Свяжемся в&nbsp;течение 24&nbsp;часов.
+      </div>
+    </form>
+  </div>
+</section>
+
+<!-- ═══════════════════════ FOOTER ═══════════════════════ -->
+<footer class="footer">
+  <h3 class="word reveal">
+    <span class="o1">МОЙ</span>·<span class="out">КРОЙ</span>·<span class="o2">2026</span>·<span class="o3">®</span>
+  </h3>
+
+  <div class="foot-col">
+    <h5>Контакты</h5>
+    <a href="tel:+70000000000">+7 (000) 000-00-00</a>
+    <a href="mailto:hello@moykroy.ru">hello@moykroy.ru</a>
+    <p style="color: var(--ink-dim);">пн–пт · 10:00–20:00</p>
+  </div>
+  <div class="foot-col">
+    <h5>Цех</h5>
+    <p>Москва, ул. Складочная, 1</p>
+    <p>Отгрузка по&nbsp;РФ и&nbsp;СНГ</p>
+  </div>
+  <div class="foot-col">
+    <h5>Соцсети</h5>
+    <a href="#">Telegram&nbsp;→</a>
+    <a href="#">Instagram&nbsp;→</a>
+    <a href="#">VK&nbsp;→</a>
+  </div>
+  <div class="foot-col">
+    <h5>Разделы</h5>
+    <a href="#what">Что шьём</a>
+    <a href="#gallery">Галерея</a>
+    <a href="#whom">Кому</a>
+    <a href="#process">Процесс</a>
+    <a href="#cases">Кейсы</a>
+  </div>
+
+  <div class="foot-bottom">
+    <span>© Мой крой · Швейная фабрика · 2016—2026</span>
+    <span>Сделано с&nbsp;любовью к&nbsp;ткани</span>
+  </div>
+</footer>
+
+<script>
+  // ── фото-слоты: помечаем загруженные ─────────────────────────
+  (function(){
+    document.querySelectorAll('.photo > img').forEach(img => {
+      const mark = () => img.parentNode.classList.add('loaded');
+      if (img.complete && img.naturalWidth > 0) mark();
+      else img.addEventListener('load', mark);
+    });
+  })();
+
+  // ── кастомный курсор ─────────────────────────────────────────
+  (function(){
+    const c = document.getElementById('cursor');
+    if (!c || matchMedia('(hover: none)').matches) return;
+    let x = innerWidth/2, y = innerHeight/2, tx = x, ty = y;
+    addEventListener('pointermove', e => { tx = e.clientX; ty = e.clientY; }, {passive:true});
+    (function loop(){
+      x += (tx - x) * 0.22;
+      y += (ty - y) * 0.22;
+      c.style.transform = `translate(${x}px, ${y}px) translate(-50%,-50%)`;
+      requestAnimationFrame(loop);
+    })();
+    document.querySelectorAll('[data-cursor="hover"]').forEach(el => {
+      el.addEventListener('pointerenter', () => c.classList.add('hover'));
+      el.addEventListener('pointerleave', () => c.classList.remove('hover'));
+    });
+  })();
+
+  // ── скрытие/показ навбара ───────────────────────────────────
+  (function(){
+    const nav = document.getElementById('nav');
+    let prev = 0;
+    addEventListener('scroll', () => {
+      const y = scrollY;
+      if (y > 80 && y > prev) nav.classList.add('hide');
+      else nav.classList.remove('hide');
+      prev = y;
+    }, {passive:true});
+  })();
+
+  // ── параллакс на скролле (несколько элементов, разные скорости) ─
+  // Используем отдельное CSS-свойство translate (а не transform),
+  // чтобы не ломать spin-анимации и reveal-scale, работающие через transform.
+  (function(){
+    const els = Array.from(document.querySelectorAll('[data-parallax]'));
+    if (!els.length) return;
+    let ticking = false;
+    function update(){
+      els.forEach(el => {
+        const k = parseFloat(el.dataset.parallax) || 0;
+        const rect = el.getBoundingClientRect();
+        const center = rect.top + rect.height/2;
+        const dist = (innerHeight/2 - center);
+        el.style.translate = '0 ' + (dist * k).toFixed(1) + 'px';
+      });
+      ticking = false;
+    }
+    addEventListener('scroll', () => {
+      if (!ticking){ requestAnimationFrame(update); ticking = true; }
+    }, {passive:true});
+    addEventListener('resize', update);
+    update();
+  })();
+
+  // ── reveal on intersect ─────────────────────────────────────
+  (function(){
+    const io = new IntersectionObserver((entries) => {
+      entries.forEach(e => {
+        if (e.isIntersecting) { e.target.classList.add('in'); io.unobserve(e.target); }
+      });
+    }, { threshold: 0.12, rootMargin: '0px 0px -8% 0px' });
+    document.querySelectorAll('.reveal, .reveal-scale, .reveal-clip').forEach(el => io.observe(el));
+  })();
+
+  // ── hero: побуквенное появление заголовка ───────────────────
+  (function(){
+    const h = document.getElementById('heroTitle');
+    if (!h) return;
+    h.querySelectorAll('.row').forEach(row => {
+      // не трогаем элементы с детьми svg/span — оборачиваем посимвольно текстовые ноды
+      const walk = (node) => {
+        const kids = Array.from(node.childNodes);
+        kids.forEach(n => {
+          if (n.nodeType === Node.TEXT_NODE){
+            const text = n.textContent;
+            if (!text.trim()) return;
+            const frag = document.createDocumentFragment();
+            Array.from(text).forEach((ch, i) => {
+              const s = document.createElement('span');
+              s.className = 'ch';
+              s.textContent = ch;
+              s.style.transitionDelay = (i * 0.018) + 's';
+              frag.appendChild(s);
+            });
+            n.replaceWith(frag);
+          } else if (n.nodeType === Node.ELEMENT_NODE && n.tagName !== 'SVG' && n.tagName !== 'svg'){
+            // span внутри строки тоже обработать
+            walk(n);
+          }
+        });
+      };
+      walk(row);
+    });
+    // запускаем анимацию заголовка и hero meta сразу после построения
+    requestAnimationFrame(() => {
+      h.classList.add('in');
+      h.closest('.hero').classList.add('in');
+    });
+  })();
+
+  // ── счётчики цифр ───────────────────────────────────────────
+  (function(){
+    const fmt = (n) => n.toLocaleString('ru-RU').replace(/,/g, ' ');
+    const io = new IntersectionObserver((entries) => {
+      entries.forEach(e => {
+        if (!e.isIntersecting) return;
+        const el = e.target;
+        const target = parseInt(el.dataset.count, 10);
+        const suffix = el.dataset.suffix || '';
+        const dur = 1400;
+        const start = performance.now();
+        function tick(t){
+          const k = Math.min(1, (t - start) / dur);
+          const eased = 1 - Math.pow(1 - k, 3);
+          el.textContent = fmt(Math.round(target * eased)) + suffix;
+          if (k < 1) requestAnimationFrame(tick);
+        }
+        requestAnimationFrame(tick);
+        io.unobserve(el);
+      });
+    }, { threshold: 0.5 });
+    document.querySelectorAll('[data-count]').forEach(el => io.observe(el));
+  })();
+
+  // ── магнитные кнопки ────────────────────────────────────────
+  (function(){
+    if (matchMedia('(hover: none)').matches) return;
+    document.querySelectorAll('.magnetic').forEach(el => {
+      el.addEventListener('pointermove', (e) => {
+        const r = el.getBoundingClientRect();
+        const dx = (e.clientX - (r.left + r.width/2)) * 0.18;
+        const dy = (e.clientY - (r.top + r.height/2)) * 0.28;
+        el.style.transform = `translate(${dx}px, ${dy}px)`;
+      });
+      el.addEventListener('pointerleave', () => {
+        el.style.transform = '';
+      });
+    });
+  })();
+
+  // ── форма (front-only) ──────────────────────────────────────
+  (function(){
+    const f = document.getElementById('leadForm');
+    if (!f) return;
+    f.addEventListener('submit', (e) => {
+      e.preventDefault();
+      const name = f.querySelector('#f-name').value.trim();
+      const contact = f.querySelector('#f-contact').value.trim();
+      if (!name || !contact) {
+        f.querySelectorAll('input[required]').forEach(i => {
+          if (!i.value.trim()) i.style.borderColor = 'var(--pink)';
+        });
+        return;
+      }
+      f.classList.add('sent');
+    });
+    f.querySelectorAll('input, textarea').forEach(i => {
+      i.addEventListener('input', () => i.style.borderColor = '');
+    });
+  })();
+</script>
+</body>
+</html>
